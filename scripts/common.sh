@@ -20,7 +20,7 @@ exec_cmd() {
     echo "$desc..."
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 执行: $desc" >> "$log_file"
     
-    if eval "$cmd"; then
+    if bash -c "$cmd"; then
         echo "$desc 成功"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: $desc" >> "$log_file"
     else

@@ -24,8 +24,8 @@ configure_ssh_port() {
             fi
             
             # 修改SSH端口
-            sed -i 's/^#Port 22/Port $SSH_PORT/' /etc/ssh/sshd_config
-            sed -i 's/^Port 22/Port $SSH_PORT/' /etc/ssh/sshd_config
+            sed -i "s/^#Port 22/Port $SSH_PORT/" /etc/ssh/sshd_config
+            sed -i "s/^Port 22/Port $SSH_PORT/" /etc/ssh/sshd_config
             
             # 配置防火墙
             firewall-cmd --permanent --add-port=$SSH_PORT/tcp

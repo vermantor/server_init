@@ -8,6 +8,20 @@ set -e
 # 脚本目录
 SCRIPT_DIR="$(dirname "$0")/scripts"
 
+# 检查并设置脚本权限
+check_script_permissions() {
+    echo "检查脚本权限..."
+    for script in "$SCRIPT_DIR"/*.sh; do
+        if [ -f "$script" ]; then
+            chmod +x "$script" 2>/dev/null || true
+        fi
+    done
+    echo "脚本权限检查完成"
+}
+
+# 检查并设置脚本权限
+check_script_permissions
+
 # 加载通用函数模块
 if [ -f "$SCRIPT_DIR/common.sh" ]; then
     source "$SCRIPT_DIR/common.sh"
@@ -16,11 +30,19 @@ else
     exit 1
 fi
 
-# 加载语言支持模块
-if [ -f "$SCRIPT_DIR/language.sh" ]; then
-    source "$SCRIPT_DIR/language.sh"
+# 加载语言配置模块
+if [ -f "$SCRIPT_DIR/language_config.sh" ]; then
+    source "$SCRIPT_DIR/language_config.sh"
 else
-    echo "错误: 找不到语言支持模块 $SCRIPT_DIR/language.sh"
+    echo "错误: 找不到语言配置模块 $SCRIPT_DIR/language_config.sh"
+    exit 1
+fi
+
+# 加载Git检查模块
+if [ -f "$SCRIPT_DIR/git_check.sh" ]; then
+    source "$SCRIPT_DIR/git_check.sh"
+else
+    echo "错误: 找不到Git检查模块 $SCRIPT_DIR/git_check.sh"
     exit 1
 fi
 
@@ -86,6 +108,9 @@ configure_firewall "$LOG_FILE"
 
 # 配置Fail2ban
 configure_fail2ban "$LOG_FILE"
+
+# 配置用户权限
+configure_user_permissions "$LOG_FILE"
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 初始化脚本执行完成" >> "$LOG_FILE"
 echo "=== 初始化完成 ==="
