@@ -1,0 +1,21 @@
+# 忽略环境变量文件
+.env
+
+# 忽略日志文件
+*.log
+
+# 忽略备份文件
+*.bak
+
+# 忽略临时文件
+*.tmp
+*~
+
+# 忽略IDE文件
+.vscode/
+.idea/
+.trae/
+
+# 忽略系统文件
+Thumbs.db
+.DS_Store
