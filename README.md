@@ -33,8 +33,8 @@ server_auto_init/
 
 1. **克隆项目**
    ```bash
-   git clone https://github.com/yourusername/server_auto_init.git
-   cd server_auto_init
+   git clone https://github.com/vermantor/server_init.git
+   cd server_init
    ```
 
 2. **配置环境变量**

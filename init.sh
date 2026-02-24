@@ -6,7 +6,7 @@ set -e
 
 # 检测是否支持中文显示
 check_chinese_support() {
-    if locale -a | grep -q 'zh_CN.UTF-8'; then
+    if locale -a | grep -q 'zh_CN.UTF-8' || rpm -q glibc-langpack-zh &> /dev/null; then
         return 0  # 支持中文
     else
         return 1  # 不支持中文
@@ -26,10 +26,10 @@ fi
 # 检查并安装中文语言支持
 echo "检查中文语言支持..."
 if [ "$(grep -c 'LANG=zh_CN.UTF-8' /etc/locale.conf)" -eq 0 ]; then
-    # 安装中文语言包
-    if ! rpm -q langpacks-zh_CN &> /dev/null; then
+    # 安装中文语言包（OpenCloudOS 9使用不同的包名）
+    if ! rpm -q glibc-langpack-zh &> /dev/null; then
         echo "安装中文语言包..."
-        dnf install -y langpacks-zh_CN
+        dnf install -y glibc-langpack-zh
     fi
     # 设置系统语言环境
     echo "设置中文语言环境..."
@@ -82,6 +82,36 @@ fi
 # 加载.env文件
 echo "加载配置文件..."
 source .env
+
+# 自动检测网络接口
+if [ -z "$NETWORK_INTERFACE" ]; then
+    echo "正在自动检测网络接口..."
+    # 参考 server_net_reset.sh 中的检测方法
+    interfaces=""
+    
+    # 使用nmcli获取
+    if command -v nmcli &> /dev/null; then
+        interfaces=$(nmcli -t -f DEVICE,TYPE dev status 2>/dev/null | grep ":ethernet" | cut -d: -f1)
+    fi
+    
+    # 如果nmcli没找到，使用ip命令
+    if [ -z "$interfaces" ]; then
+        interfaces=$(ip -o link show | grep -v "lo:" | grep "state" | awk -F': ' '{print $2}' | grep -E "^e|^en" | head -5)
+    fi
+    
+    # 去重
+    interfaces=$(echo "$interfaces" | sort -u | tr '\n' ' ')
+    
+    if [ -z "$interfaces" ]; then
+        echo "没有找到可用的以太网卡！"
+        echo "请检查网络连接并手动在.env文件中设置NETWORK_INTERFACE"
+        exit 1
+    fi
+    
+    # 取第一个可用的网络接口
+    NETWORK_INTERFACE=$(echo "$interfaces" | awk '{print $1}')
+    echo "自动检测到网络接口: $NETWORK_INTERFACE"
+fi
 
 # 定义日志文件
 LOG_FILE="init.log"
