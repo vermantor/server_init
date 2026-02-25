@@ -63,9 +63,6 @@ else
     exit 1
 fi
 
-# 检查root权限
-check_root
-
 # 定义日志文件
 LOG_FILE="init.log"
 touch "$LOG_FILE"
@@ -99,14 +96,13 @@ show_menu() {
     echo "8. 禁用root账户登录"
     echo "9. 退出"
     echo ""
-    read -p "请输入选项 [1-9]: " choice
-    echo ""
-    return $choice
 }
 
 # 执行完整初始化
 exec_full_init() {
     show_title
+    # 检查root权限
+    check_root
     echo "正在执行完整初始化..."
     echo ""
     
@@ -150,6 +146,8 @@ exec_full_init() {
 # 配置主机名
 exec_hostname_config() {
     show_title
+    # 检查root权限
+    check_root
     echo "正在配置主机名..."
     echo ""
     
@@ -168,6 +166,8 @@ exec_hostname_config() {
 # 配置网络
 exec_network_config() {
     show_title
+    # 检查root权限
+    check_root
     echo "正在配置网络..."
     echo ""
     
@@ -189,6 +189,8 @@ exec_network_config() {
 # 配置SSH
 exec_ssh_config() {
     show_title
+    # 检查root权限
+    check_root
     echo "正在配置SSH..."
     echo ""
     
@@ -214,6 +216,8 @@ exec_ssh_config() {
 # 配置安全设置
 exec_security_config() {
     show_title
+    # 检查root权限
+    check_root
     echo "正在配置安全设置..."
     echo ""
     
@@ -238,6 +242,8 @@ exec_security_config() {
 # 配置用户权限
 exec_user_permissions_config() {
     show_title
+    # 检查root权限
+    check_root
     echo "正在配置用户权限..."
     echo ""
     
@@ -272,6 +278,8 @@ exec_view_log() {
 # 禁用root账户登录
 exec_disable_root() {
     show_title
+    # 检查root权限
+    check_root
     echo "正在禁用root账户登录权限..."
     echo ""
     echo "警告: 此操作将禁用root账户登录，请确保已创建并验证了新的管理员账户！"
@@ -296,8 +304,11 @@ exec_disable_root() {
 # 主循环
 main() {
     while true; do
+        # 显示菜单
         show_menu
-        choice=$?
+        # 直接读取用户输入
+        read -p "请输入选项 [1-9]: " choice
+        echo ""
         
         case $choice in
             1)
