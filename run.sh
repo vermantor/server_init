@@ -34,18 +34,19 @@ check_script_permissions
 
 # 加载脚本目录下的所有模块
 echo "加载配置模块..."
-echo "DEBUG: 开始加载模块"
 for script in "$SCRIPT_DIR"/*.sh; do
     if [ -f "$script" ] && [ "$(basename "$script")" != "main.sh" ]; then
         echo "加载模块: $(basename "$script")"
-        echo "DEBUG: 加载模块前"
         source "$script"
-        echo "DEBUG: 加载模块后"
     fi
 done
 echo "模块加载完成"
-echo "DEBUG: 模块加载完成，准备显示菜单"
 
+# 检查root权限
+check_root
+
+# 加载配置文件
+load_config
 
 # 定义日志文件
 LOG_FILE="init.log"
@@ -85,13 +86,8 @@ show_menu() {
 # 执行完整初始化
 exec_full_init() {
     show_title
-    # 检查root权限
-    check_root
     echo "正在执行完整初始化..."
     echo ""
-    
-    # 加载配置文件
-    load_config
     
     # 自动检测网络接口
     detect_network_interface
@@ -130,13 +126,8 @@ exec_full_init() {
 # 配置主机名
 exec_hostname_config() {
     show_title
-    # 检查root权限
-    check_root
     echo "正在配置主机名..."
     echo ""
-    
-    # 加载配置文件
-    load_config
     
     configure_hostname "$LOG_FILE"
     
@@ -150,13 +141,8 @@ exec_hostname_config() {
 # 配置网络
 exec_network_config() {
     show_title
-    # 检查root权限
-    check_root
     echo "正在配置网络..."
     echo ""
-    
-    # 加载配置文件
-    load_config
     
     # 自动检测网络接口
     detect_network_interface
@@ -173,13 +159,8 @@ exec_network_config() {
 # 配置SSH
 exec_ssh_config() {
     show_title
-    # 检查root权限
-    check_root
     echo "正在配置SSH..."
     echo ""
-    
-    # 加载配置文件
-    load_config
     
     # 配置SSH端口
     configure_ssh_port "$LOG_FILE"
@@ -200,13 +181,8 @@ exec_ssh_config() {
 # 配置安全设置
 exec_security_config() {
     show_title
-    # 检查root权限
-    check_root
     echo "正在配置安全设置..."
     echo ""
-    
-    # 加载配置文件
-    load_config
     
     # 配置防火墙
     configure_firewall "$LOG_FILE"
@@ -226,13 +202,8 @@ exec_security_config() {
 # 配置用户权限
 exec_user_permissions_config() {
     show_title
-    # 检查root权限
-    check_root
     echo "正在配置用户权限..."
     echo ""
-    
-    # 加载配置文件
-    load_config
     
     configure_user_permissions "$LOG_FILE"
     
@@ -262,8 +233,6 @@ exec_view_log() {
 # 禁用root账户登录
 exec_disable_root() {
     show_title
-    # 检查root权限
-    check_root
     echo "正在禁用root账户登录权限..."
     echo ""
     echo "警告: 此操作将禁用root账户登录，请确保已创建并验证了新的管理员账户！"
