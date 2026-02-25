@@ -27,41 +27,25 @@ check_script_permissions() {
 # 检查并设置脚本权限
 check_script_permissions
 
-# 加载通用函数模块
-if [ -f "$SCRIPT_DIR/common.sh" ]; then
-    source "$SCRIPT_DIR/common.sh"
-else
-    echo "错误: 找不到通用函数模块 $SCRIPT_DIR/common.sh"
-    exit 1
-fi
 
 
 
 
 
-# 加载网络配置模块
-if [ -f "$SCRIPT_DIR/network.sh" ]; then
-    source "$SCRIPT_DIR/network.sh"
-else
-    echo "错误: 找不到网络配置模块 $SCRIPT_DIR/network.sh"
-    exit 1
-fi
+# 加载脚本目录下的所有模块
+echo "加载配置模块..."
+echo "DEBUG: 开始加载模块"
+for script in "$SCRIPT_DIR"/*.sh; do
+    if [ -f "$script" ] && [ "$(basename "$script")" != "main.sh" ]; then
+        echo "加载模块: $(basename "$script")"
+        echo "DEBUG: 加载模块前"
+        source "$script"
+        echo "DEBUG: 加载模块后"
+    fi
+done
+echo "模块加载完成"
+echo "DEBUG: 模块加载完成，准备显示菜单"
 
-# 加载SSH配置模块
-if [ -f "$SCRIPT_DIR/ssh.sh" ]; then
-    source "$SCRIPT_DIR/ssh.sh"
-else
-    echo "错误: 找不到SSH配置模块 $SCRIPT_DIR/ssh.sh"
-    exit 1
-fi
-
-# 加载安全配置模块
-if [ -f "$SCRIPT_DIR/security.sh" ]; then
-    source "$SCRIPT_DIR/security.sh"
-else
-    echo "错误: 找不到安全配置模块 $SCRIPT_DIR/security.sh"
-    exit 1
-fi
 
 # 定义日志文件
 LOG_FILE="init.log"

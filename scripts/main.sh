@@ -39,29 +39,15 @@ fi
 
 
 
-# 加载网络配置模块
-if [ -f "$SCRIPT_DIR/network.sh" ]; then
-    source "$SCRIPT_DIR/network.sh"
-else
-    echo "错误: 找不到网络配置模块 $SCRIPT_DIR/network.sh"
-    exit 1
-fi
-
-# 加载SSH配置模块
-if [ -f "$SCRIPT_DIR/ssh.sh" ]; then
-    source "$SCRIPT_DIR/ssh.sh"
-else
-    echo "错误: 找不到SSH配置模块 $SCRIPT_DIR/ssh.sh"
-    exit 1
-fi
-
-# 加载安全配置模块
-if [ -f "$SCRIPT_DIR/security.sh" ]; then
-    source "$SCRIPT_DIR/security.sh"
-else
-    echo "错误: 找不到安全配置模块 $SCRIPT_DIR/security.sh"
-    exit 1
-fi
+# 加载脚本目录下的所有模块
+echo "加载配置模块..."
+for script in "$SCRIPT_DIR"/*.sh; do
+    if [ -f "$script" ] && [ "$(basename "$script")" != "main.sh" ]; then
+        echo "加载模块: $(basename "$script")"
+        source "$script"
+    fi
+done
+echo "模块加载完成"
 
 # 检查root权限
 check_root

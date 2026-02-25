@@ -20,8 +20,21 @@ REPO_URL="https://github.com/vermantor/server_init.git"
 force_pull_repo() {
     echo "处理代码仓库..."
     
-    if [ -d "$TARGET_DIR" ]; then
+    # 检查当前目录是否是git仓库
+    if git rev-parse --is-inside-work-tree &> /dev/null; then
+        echo "当前目录是git仓库，正在强制更新..."
+        # 强制更新，覆盖本地修改
+        git fetch --all
+        git reset --hard origin/master
+        if [ $? -eq 0 ]; then
+            echo "仓库更新成功"
+        else
+            echo "错误: 仓库更新失败"
+            exit 1
+        fi
+    elif [ -d "$TARGET_DIR" ]; then
         echo "仓库目录已存在，正在强制更新..."
+        cd "$TARGET_DIR"
         # 强制更新，覆盖本地修改
         git fetch --all
         git reset --hard origin/master
