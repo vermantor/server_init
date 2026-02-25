@@ -73,10 +73,38 @@ create_connection() {
     
     # 配置静态IP
     echo "配置静态IP: $IP_ADDRESS"
-    nmcli con mod "$conn_name" ipv4.addresses "$IP_ADDRESS/$NETMASK"
+    
+    # 将子网掩码转换为CIDR前缀长度
+    subnet_to_cidr() {
+        local mask=$1
+        local cidr=0
+        local octet
+        for octet in $(echo $mask | tr '.' ' '); do
+            case $octet in
+                255) cidr=$((cidr + 8)) ;;
+                254) cidr=$((cidr + 7)) ;;
+                252) cidr=$((cidr + 6)) ;;
+                248) cidr=$((cidr + 5)) ;;
+                240) cidr=$((cidr + 4)) ;;
+                224) cidr=$((cidr + 3)) ;;
+                192) cidr=$((cidr + 2)) ;;
+                128) cidr=$((cidr + 1)) ;;
+                0) break ;;
+                *) return 1 ;;
+            esac
+        done
+        echo $cidr
+    }
+    
+    # 计算CIDR前缀长度
+    CIDR=$(subnet_to_cidr "$NETMASK")
+    
+    # 先设置方法为manual
+    nmcli con mod "$conn_name" ipv4.method manual
+    # 然后设置地址、网关和DNS
+    nmcli con mod "$conn_name" ipv4.addresses "$IP_ADDRESS/$CIDR"
     nmcli con mod "$conn_name" ipv4.gateway "$GATEWAY"
     nmcli con mod "$conn_name" ipv4.dns "$DNS_SERVERS"
-    nmcli con mod "$conn_name" ipv4.method manual
     
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 创建网络连接 $conn_name" >> "$log_file"
     echo "$conn_name"

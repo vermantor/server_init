@@ -23,6 +23,7 @@ configure_hostname() {
             echo "$HOSTNAME" > /etc/hostname
             if [ $? -eq 0 ]; then
                 echo "更新/etc/hostname文件成功"
+                echo "当前主机名已经更新为 $HOSTNAME"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 更新/etc/hostname文件" >> "$log_file"
             else
                 echo "更新/etc/hostname文件失败"
