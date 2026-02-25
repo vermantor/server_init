@@ -11,11 +11,16 @@ SCRIPT_DIR="$(dirname "$0")"
 # 检查并设置脚本权限
 check_script_permissions() {
     echo "检查脚本权限..."
+    # 设置scripts目录下所有sh文件的权限
     for script in "$SCRIPT_DIR"/*.sh; do
         if [ -f "$script" ]; then
             chmod +x "$script" 2>/dev/null || true
         fi
     done
+    # 设置项目根目录下pull.sh文件的权限
+    if [ -f "$(dirname "$SCRIPT_DIR")/pull.sh" ]; then
+        chmod +x "$(dirname "$SCRIPT_DIR")/pull.sh" 2>/dev/null || true
+    fi
     echo "脚本权限检查完成"
 }
 

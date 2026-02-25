@@ -11,11 +11,16 @@ SCRIPT_DIR="$(dirname "$0")/scripts"
 # 检查并设置脚本权限
 check_script_permissions() {
     echo "检查脚本权限..."
+    # 设置scripts目录下所有sh文件的权限
     for script in "$SCRIPT_DIR"/*.sh; do
         if [ -f "$script" ]; then
             chmod +x "$script" 2>/dev/null || true
         fi
     done
+    # 设置项目根目录下pull.sh文件的权限
+    if [ -f "$(dirname "$0")/pull.sh" ]; then
+        chmod +x "$(dirname "$0")/pull.sh" 2>/dev/null || true
+    fi
     echo "脚本权限检查完成"
 }
 
@@ -104,11 +109,6 @@ exec_full_init() {
     show_title
     echo "正在执行完整初始化..."
     echo ""
-    
-    # 设置基本语言环境
-    export LANG=en_US.UTF-8
-    export LC_ALL=en_US.UTF-8
-    echo "语言环境已设置为 en_US.UTF-8"
     
     # 加载配置文件
     load_config

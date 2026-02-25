@@ -12,29 +12,7 @@ TARGET_DIR="server_init"
 # 仓库地址
 REPO_URL="https://github.com/vermantor/server_init.git"
 
-# 检查基本环境
-check_environment() {
-    echo "Checking basic environment..."
-    
-    # 确保终端编码为UTF-8
-    if [ -z "$LANG" ] || [[ "$LANG" != *UTF-8* ]]; then
-        echo "Setting UTF-8 encoding..."
-        export LANG=en_US.UTF-8
-        export LC_ALL=en_US.UTF-8
-        echo "Environment encoding set to UTF-8"
-    else
-        echo "Environment encoding is already UTF-8"
-    fi
-    
-    # 设置终端类型
-    if [ -n "$TERM" ]; then
-        export TERM=xterm-256color
-        echo "Terminal type set to: $TERM"
-    fi
-    
-    echo "Basic environment check completed"
-    echo ""
-}
+
 
 
 
@@ -44,7 +22,6 @@ force_pull_repo() {
     
     if [ -d "$TARGET_DIR" ]; then
         echo "仓库目录已存在，正在强制更新..."
-        cd "$TARGET_DIR"
         # 强制更新，覆盖本地修改
         git fetch --all
         git reset --hard origin/master
@@ -92,8 +69,7 @@ main() {
     echo "====================================================="
     echo ""
     
-    # 检查基本环境
-    check_environment
+
     
     # 强制拉取更新仓库
     force_pull_repo
