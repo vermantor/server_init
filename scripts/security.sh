@@ -189,21 +189,46 @@ configure_user_permissions() {
         fi
     fi
     
-    # 只有在新账户创建成功且验证可用后才禁用root账户
-    if [ "$user_verified" = true ]; then
-        echo "禁用root账户登录..."
-        passwd -l root &> /dev/null
-        if [ $? -eq 0 ]; then
-            echo "root账户已禁用"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 禁用root账户" >> "$log_file"
-        else
-            echo "禁用root账户失败"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 禁用root账户" >> "$log_file"
-        fi
+    echo "用户权限配置完成"
+}
+
+# 禁用root账户登录
+# 此功能应在初始化完成后单独执行
+disable_root_login() {
+    local log_file="$1"
+    
+    echo "禁用root账户登录权限..."
+    
+    # 锁定root账户
+    passwd -l root &> /dev/null
+    if [ $? -eq 0 ]; then
+        echo "root账户已禁用"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 禁用root账户" >> "$log_file"
     else
-        echo "新账户创建或验证失败，暂不禁用root账户"
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - 警告: 新账户创建或验证失败，暂不禁用root账户" >> "$log_file"
+        echo "禁用root账户失败"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 禁用root账户" >> "$log_file"
+        exit 1
     fi
     
-    echo "用户权限配置完成"
+    # 确保SSH配置中禁用root登录
+    current_root_login=$(grep -oP '^PermitRootLogin \K\w+' /etc/ssh/sshd_config 2>/dev/null)
+    if [ "$current_root_login" != "no" ]; then
+        sed -i 's/^#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
+        sed -i 's/^PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
+        
+        # 重启SSH服务
+        systemctl restart sshd
+        if [ $? -eq 0 ]; then
+            echo "SSH服务重启成功"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 重启SSH服务" >> "$log_file"
+        else
+            echo "SSH服务重启失败"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 重启SSH服务" >> "$log_file"
+            exit 1
+        fi
+    else
+        echo "SSH配置中已禁用root登录，跳过"
+    fi
+    
+    echo "root账户登录权限禁用完成"
 }

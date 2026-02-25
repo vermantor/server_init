@@ -1,6 +1,6 @@
 # 忽略环境变量文件
 .env
-
+server_init.sh
 # 忽略日志文件
 *.log
 

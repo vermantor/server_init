@@ -62,8 +62,8 @@ configure_ssh_port() {
     fi
 }
 
-# 生成密钥对
-generate_ssh_keys() {
+# 配置SSH目录
+configure_ssh_directory() {
     local log_file="$1"
     
     if [ ! -z "$SSH_USER" ]; then
@@ -103,21 +103,6 @@ generate_ssh_keys() {
             fi
         fi
         
-        # 生成密钥对
-        if [ ! -f "$SSH_DIR/id_rsa" ]; then
-            su - "$SSH_USER" -c "ssh-keygen -t rsa -b 2048 -N '' -f $SSH_DIR/id_rsa"
-            if [ $? -eq 0 ]; then
-                echo "生成SSH密钥对成功"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 生成SSH密钥对" >> "$log_file"
-            else
-                echo "生成SSH密钥对失败"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 生成SSH密钥对" >> "$log_file"
-                exit 1
-            fi
-        else
-            echo "SSH密钥对已存在，跳过"
-        fi
-        
         # 确保authorized_keys文件存在
         if [ ! -f "$SSH_DIR/authorized_keys" ]; then
             touch "$SSH_DIR/authorized_keys"
@@ -129,17 +114,25 @@ generate_ssh_keys() {
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 创建authorized_keys文件" >> "$log_file"
                 exit 1
             fi
-            
+        fi
+        
+        # 检查并设置文件所有者
+        current_owner=$(stat -c "%U:%G" "$SSH_DIR/authorized_keys" 2>/dev/null)
+        if [ "$current_owner" != "$SSH_USER:$SSH_USER" ]; then
             chown "$SSH_USER:$SSH_USER" "$SSH_DIR/authorized_keys"
             if [ $? -eq 0 ]; then
-                echo "设置authorized_keys权限成功"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 设置authorized_keys权限" >> "$log_file"
+                echo "设置authorized_keys所有者成功"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 设置authorized_keys所有者" >> "$log_file"
             else
-                echo "设置authorized_keys权限失败"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 设置authorized_keys权限" >> "$log_file"
+                echo "设置authorized_keys所有者失败"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 设置authorized_keys所有者" >> "$log_file"
                 exit 1
             fi
-            
+        fi
+        
+        # 检查并设置文件权限（权限不要过大，保持600）
+        current_perm=$(stat -c "%a" "$SSH_DIR/authorized_keys" 2>/dev/null)
+        if [ "$current_perm" != "600" ]; then
             chmod 600 "$SSH_DIR/authorized_keys"
             if [ $? -eq 0 ]; then
                 echo "设置authorized_keys权限成功"
@@ -149,21 +142,6 @@ generate_ssh_keys() {
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 设置authorized_keys权限" >> "$log_file"
                 exit 1
             fi
-        fi
-        
-        # 检查公钥是否已添加到authorized_keys
-        if ! grep -q "$(cat "$SSH_DIR/id_rsa.pub" 2>/dev/null)" "$SSH_DIR/authorized_keys" 2>/dev/null; then
-            su - "$SSH_USER" -c "cat $SSH_DIR/id_rsa.pub >> $SSH_DIR/authorized_keys"
-            if [ $? -eq 0 ]; then
-                echo "添加公钥到authorized_keys成功"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 添加公钥到authorized_keys" >> "$log_file"
-            else
-                echo "添加公钥到authorized_keys失败"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 添加公钥到authorized_keys" >> "$log_file"
-                exit 1
-            fi
-        else
-            echo "公钥已添加到authorized_keys，跳过"
         fi
     fi
 }

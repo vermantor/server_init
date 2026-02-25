@@ -79,8 +79,22 @@ detect_network_interface() {
             exit 1
         fi
         
-        # 取第一个可用的网络接口
-        NETWORK_INTERFACE=$(echo "$interfaces" | awk '{print $1}')
+        # 取当前正在使用的网络接口（有IP地址的接口）
+        # 优先选择有IP地址的接口
+        active_interface=""
+        for iface in $interfaces; do
+            if ip -4 addr show "$iface" | grep -q "inet "; then
+                active_interface="$iface"
+                break
+            fi
+        done
+        
+        # 如果没有找到有IP的接口，取第一个可用接口
+        if [ -z "$active_interface" ]; then
+            active_interface=$(echo "$interfaces" | awk '{print $1}')
+        fi
+        
+        NETWORK_INTERFACE="$active_interface"
         echo "自动检测到网络接口: $NETWORK_INTERFACE"
     fi
     

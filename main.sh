@@ -38,13 +38,7 @@ else
     exit 1
 fi
 
-# 加载Git检查模块
-if [ -f "$SCRIPT_DIR/git_check.sh" ]; then
-    source "$SCRIPT_DIR/git_check.sh"
-else
-    echo "错误: 找不到Git检查模块 $SCRIPT_DIR/git_check.sh"
-    exit 1
-fi
+
 
 # 加载网络配置模块
 if [ -f "$SCRIPT_DIR/network.sh" ]; then
@@ -80,7 +74,6 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始执行初始化脚本" >> "$LOG_FILE"
 
 # 配置语言支持
 configure_language "$LOG_FILE"
-check_git "$LOG_FILE"
 
 # 加载配置文件
 load_config
@@ -97,8 +90,8 @@ configure_network "$LOG_FILE"
 # 配置SSH端口
 configure_ssh_port "$LOG_FILE"
 
-# 生成SSH密钥对
-generate_ssh_keys "$LOG_FILE"
+# 配置SSH目录
+configure_ssh_directory "$LOG_FILE"
 
 # 配置SSH安全设置
 configure_ssh_security "$LOG_FILE"
@@ -115,3 +108,5 @@ configure_user_permissions "$LOG_FILE"
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 初始化脚本执行完成" >> "$LOG_FILE"
 echo "=== 初始化完成 ==="
 echo "请检查 $LOG_FILE 查看详细执行日志"
+echo "注意: root账户登录权限未禁用，您可以在菜单中选择 '10. 禁用root账户登录' 来执行此操作"
+echo "建议在确认新账户可以正常登录后再禁用root账户"

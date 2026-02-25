@@ -38,13 +38,7 @@ else
     exit 1
 fi
 
-# 加载Git检查模块
-if [ -f "$SCRIPT_DIR/git_check.sh" ]; then
-    source "$SCRIPT_DIR/git_check.sh"
-else
-    echo "错误: 找不到Git检查模块 $SCRIPT_DIR/git_check.sh"
-    exit 1
-fi
+
 
 # 加载网络配置模块
 if [ -f "$SCRIPT_DIR/network.sh" ]; then
@@ -103,8 +97,8 @@ show_menu() {
     echo "5. 配置SSH"
     echo "6. 配置安全设置"
     echo "7. 配置用户权限"
-    echo "8. 配置Git"
-    echo "9. 查看执行日志"
+    echo "8. 查看执行日志"
+    echo "9. 禁用root账户登录"
     echo "10. 退出"
     echo ""
     read -p "请输入选项 [1-10]: " choice
@@ -120,7 +114,6 @@ exec_full_init() {
     
     # 配置语言支持
     configure_language "$LOG_FILE"
-    check_git "$LOG_FILE"
     
     # 加载配置文件
     load_config
@@ -137,8 +130,8 @@ exec_full_init() {
     # 配置SSH端口
     configure_ssh_port "$LOG_FILE"
     
-    # 生成SSH密钥对
-    generate_ssh_keys "$LOG_FILE"
+    # 配置SSH目录
+    configure_ssh_directory "$LOG_FILE"
     
     # 配置SSH安全设置
     configure_ssh_security "$LOG_FILE"
@@ -164,7 +157,6 @@ exec_language_config() {
     echo ""
     
     configure_language "$LOG_FILE"
-    check_git "$LOG_FILE"
     
     echo ""
     echo "====================================================="
@@ -224,8 +216,8 @@ exec_ssh_config() {
     # 配置SSH端口
     configure_ssh_port "$LOG_FILE"
     
-    # 生成SSH密钥对
-    generate_ssh_keys "$LOG_FILE"
+    # 配置SSH目录
+    configure_ssh_directory "$LOG_FILE"
     
     # 配置SSH安全设置
     configure_ssh_security "$LOG_FILE"
@@ -259,20 +251,7 @@ exec_security_config() {
     read -p "按 Enter 键返回菜单..."
 }
 
-# 配置Git
-exec_git_config() {
-    show_title
-    echo "正在配置Git..."
-    echo ""
-    
-    check_git "$LOG_FILE"
-    
-    echo ""
-    echo "====================================================="
-    echo "Git配置完成！"
-    echo "====================================================="
-    read -p "按 Enter 键返回菜单..."
-}
+
 
 # 配置用户权限
 exec_user_permissions_config() {
@@ -308,6 +287,30 @@ exec_view_log() {
     read -p "按 Enter 键返回菜单..."
 }
 
+# 禁用root账户登录
+exec_disable_root() {
+    show_title
+    echo "正在禁用root账户登录权限..."
+    echo ""
+    echo "警告: 此操作将禁用root账户登录，请确保已创建并验证了新的管理员账户！"
+    echo ""
+    read -p "确认执行此操作吗？ (y/n): " confirm
+    
+    if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+        disable_root_login "$LOG_FILE"
+        
+        echo ""
+        echo "====================================================="
+        echo "root账户登录权限已禁用！"
+        echo "请使用新创建的账户进行后续操作"
+        echo "====================================================="
+    else
+        echo "操作已取消"
+    fi
+    
+    read -p "按 Enter 键返回菜单..."
+}
+
 # 主循环
 main() {
     while true; do
@@ -337,10 +340,10 @@ main() {
                 exec_user_permissions_config
                 ;;
             8)
-                exec_git_config
+                exec_view_log
                 ;;
             9)
-                exec_view_log
+                exec_disable_root
                 ;;
             10)
                 show_title
