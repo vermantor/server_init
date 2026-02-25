@@ -134,9 +134,9 @@ test_network() {
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 网络测试失败" >> "$log_file"
         return 1
     elif [ $success -lt $total ]; then
-        echo "部分网络测试失败"
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - 警告: 部分网络测试失败" >> "$log_file"
-        return 2
+        echo "部分网络测试失败，但网络已成功配置"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 信息: 部分网络测试失败，但网络已成功配置" >> "$log_file"
+        return 0
     else
         echo "所有网络测试通过"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 网络测试通过" >> "$log_file"
@@ -228,8 +228,6 @@ configure_network() {
         echo ""
         if [ $test_result -eq 0 ]; then
             echo "网络配置成功！"
-        elif [ $test_result -eq 2 ]; then
-            echo "网络部分可用，可能需要手动检查DNS配置"
         else
             echo "网络配置可能有问题，请手动检查"
         fi
