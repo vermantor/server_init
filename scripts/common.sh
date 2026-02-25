@@ -105,11 +105,7 @@ detect_network_interface() {
 # 检查root权限
 check_root() {
     if [ "$(id -u)" != "0" ]; then
-        if check_chinese_support; then
-            echo "错误: 请以root权限执行此脚本"
-        else
-            echo "Error: Please run this script as root"
-        fi
+        echo "错误: 请以root权限执行此脚本"
         exit 1
     fi
 }

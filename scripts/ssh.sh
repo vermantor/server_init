@@ -146,7 +146,7 @@ configure_ssh_directory() {
     fi
 }
 
-# 配置用户安全设置
+# 配置SSH安全设置
 configure_ssh_security() {
     local log_file="$1"
     
@@ -159,39 +159,39 @@ configure_ssh_security() {
             sed -i 's/^#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
             sed -i 's/^PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
             sshd_config_changed=true
-            echo "禁用root登录"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 禁用root登录" >> "$log_file"
+            echo "已禁用root登录"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已禁用root登录" >> "$log_file"
         else
             echo "root登录已禁用，跳过"
         fi
         
-        # 检查并配置密码验证
+        # 检查并配置密码认证
         current_pw_auth=$(grep -oP '^PasswordAuthentication \K\w+' /etc/ssh/sshd_config 2>/dev/null)
         if [ "$current_pw_auth" != "$PASSWORD_AUTHENTICATION" ]; then
             if [ "$PASSWORD_AUTHENTICATION" = "yes" ]; then
                 sed -i 's/^#PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
                 sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-                echo "启用密码验证"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 启用密码验证" >> "$log_file"
+                echo "已启用密码认证"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已启用密码认证" >> "$log_file"
             else
                 sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
                 sed -i 's/^PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
-                echo "禁用密码验证"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 禁用密码验证" >> "$log_file"
+                echo "已禁用密码认证"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已禁用密码认证" >> "$log_file"
             fi
             sshd_config_changed=true
         else
-            echo "密码验证已配置为 $PASSWORD_AUTHENTICATION，跳过"
+            echo "密码认证已配置为 $PASSWORD_AUTHENTICATION，跳过"
         fi
         
-        # 重启SSH服务（如果配置有更改）
+        # 重启SSH服务（如果配置已更改）
         if [ "$sshd_config_changed" = true ]; then
             systemctl restart sshd
             if [ $? -eq 0 ]; then
-                echo "重启SSH服务成功"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 重启SSH服务" >> "$log_file"
+                echo "SSH服务重启成功"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已重启SSH服务" >> "$log_file"
             else
-                echo "重启SSH服务失败"
+                echo "SSH服务重启失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 重启SSH服务" >> "$log_file"
                 exit 1
             fi

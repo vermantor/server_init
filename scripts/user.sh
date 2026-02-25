@@ -13,15 +13,15 @@ disable_root() {
         # 锁定root账户
         passwd -l root
         if [ $? -eq 0 ]; then
-            echo "root账户已锁定"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 锁定root账户" >> "$log_file"
+            echo "Root账户已锁定"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已锁定root账户" >> "$log_file"
         else
             echo "锁定root账户失败"
             echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 锁定root账户" >> "$log_file"
             exit 1
         fi
     else
-        echo "root账户不存在，跳过"
+        echo "Root账户不存在，跳过"
     fi
 }
 
@@ -38,7 +38,7 @@ create_user() {
             useradd "$SSH_USER"
             if [ $? -eq 0 ]; then
                 echo "用户 $SSH_USER 创建成功"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 创建用户 $SSH_USER" >> "$log_file"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已创建用户 $SSH_USER" >> "$log_file"
             else
                 echo "创建用户 $SSH_USER 失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 创建用户 $SSH_USER" >> "$log_file"
@@ -51,7 +51,7 @@ create_user() {
             if [ $? -eq 0 ]; then
                 echo "用户 $SSH_USER 密码设置成功"
                 echo "密码: $password" | tee -a "$log_file"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 设置用户 $SSH_USER 密码" >> "$log_file"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已设置用户 $SSH_USER 密码" >> "$log_file"
             else
                 echo "设置用户 $SSH_USER 密码失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 设置用户 $SSH_USER 密码" >> "$log_file"
@@ -62,9 +62,9 @@ create_user() {
             usermod -aG wheel "$SSH_USER"
             if [ $? -eq 0 ]; then
                 echo "用户 $SSH_USER 已添加到sudo组"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 将用户 $SSH_USER 添加到sudo组" >> "$log_file"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已将用户 $SSH_USER 添加到sudo组" >> "$log_file"
             else
-                echo "添加用户 $SSH_USER 到sudo组失败"
+                echo "将用户 $SSH_USER 添加到sudo组失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 将用户 $SSH_USER 添加到sudo组" >> "$log_file"
                 exit 1
             fi
@@ -79,17 +79,17 @@ create_user() {
             
             # 检查公钥文件是否存在
             if [ -f "$pub_key_file" ]; then
-                # 追加公钥到authorized_keys
+                # 将公钥添加到authorized_keys
                 cat "$pub_key_file" >> "$ssh_dir/authorized_keys"
                 chmod 600 "$ssh_dir/authorized_keys"
                 chown -R "$SSH_USER:$SSH_USER" "$ssh_dir"
                 
                 if [ $? -eq 0 ]; then
                     echo "SSH公钥已添加到用户 $SSH_USER 的authorized_keys"
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 添加SSH公钥到用户 $SSH_USER" >> "$log_file"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已将SSH公钥添加到用户 $SSH_USER" >> "$log_file"
                 else
                     echo "添加SSH公钥失败"
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 添加SSH公钥到用户 $SSH_USER" >> "$log_file"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 向用户 $SSH_USER 添加SSH公钥" >> "$log_file"
                 fi
             else
                 echo "警告: 未找到 $pub_key_file 文件，跳过公钥配置"
@@ -99,7 +99,7 @@ create_user() {
             echo "账户 $SSH_USER 已存在，跳过创建"
         fi
     else
-        echo "未配置SSH_USER，跳过创建新账户"
+        echo "SSH_USER未配置，跳过新账户创建"
     fi
     
     echo "用户创建完成"

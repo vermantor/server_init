@@ -6,7 +6,7 @@
 set -e
 
 # 脚本目录
-SCRIPT_DIR="$(dirname "$0")/scripts"
+SCRIPT_DIR="$(dirname "$0")"
 
 # 检查并设置脚本权限
 check_script_permissions() {
@@ -30,13 +30,7 @@ else
     exit 1
 fi
 
-# 加载语言配置模块
-if [ -f "$SCRIPT_DIR/language_config.sh" ]; then
-    source "$SCRIPT_DIR/language_config.sh"
-else
-    echo "错误: 找不到语言配置模块 $SCRIPT_DIR/language_config.sh"
-    exit 1
-fi
+
 
 
 
@@ -72,8 +66,10 @@ LOG_FILE="init.log"
 touch "$LOG_FILE"
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始执行初始化脚本" >> "$LOG_FILE"
 
-# 配置语言支持
-configure_language "$LOG_FILE"
+# 设置基本语言环境
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+echo "语言环境已设置为 en_US.UTF-8"
 
 # 加载配置文件
 load_config
@@ -108,5 +104,5 @@ configure_user_permissions "$LOG_FILE"
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 初始化脚本执行完成" >> "$LOG_FILE"
 echo "=== 初始化完成 ==="
 echo "请检查 $LOG_FILE 查看详细执行日志"
-echo "注意: root账户登录权限未禁用，您可以在菜单中选择 '10. 禁用root账户登录' 来执行此操作"
+echo "注意: root账户登录权限未禁用，您可以在菜单中选择 '8. 禁用root账户登录' 来执行此操作"
 echo "建议在确认新账户可以正常登录后再禁用root账户"

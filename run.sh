@@ -30,13 +30,7 @@ else
     exit 1
 fi
 
-# 加载语言配置模块
-if [ -f "$SCRIPT_DIR/language_config.sh" ]; then
-    source "$SCRIPT_DIR/language_config.sh"
-else
-    echo "错误: 找不到语言配置模块 $SCRIPT_DIR/language_config.sh"
-    exit 1
-fi
+
 
 
 
@@ -91,17 +85,16 @@ show_menu() {
     echo "请选择要执行的操作:"
     echo ""
     echo "1. 执行完整初始化 (推荐)"
-    echo "2. 配置语言支持"
-    echo "3. 配置主机名"
-    echo "4. 配置网络"
-    echo "5. 配置SSH"
-    echo "6. 配置安全设置"
-    echo "7. 配置用户权限"
-    echo "8. 查看执行日志"
-    echo "9. 禁用root账户登录"
-    echo "10. 退出"
+    echo "2. 配置主机名"
+    echo "3. 配置网络"
+    echo "4. 配置SSH"
+    echo "5. 配置安全设置"
+    echo "6. 配置用户权限"
+    echo "7. 查看执行日志"
+    echo "8. 禁用root账户登录"
+    echo "9. 退出"
     echo ""
-    read -p "请输入选项 [1-10]: " choice
+    read -p "请输入选项 [1-9]: " choice
     echo ""
     return $choice
 }
@@ -112,8 +105,10 @@ exec_full_init() {
     echo "正在执行完整初始化..."
     echo ""
     
-    # 配置语言支持
-    configure_language "$LOG_FILE"
+    # 设置基本语言环境
+    export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+    echo "语言环境已设置为 en_US.UTF-8"
     
     # 加载配置文件
     load_config
@@ -150,20 +145,7 @@ exec_full_init() {
     read -p "按 Enter 键返回菜单..."
 }
 
-# 配置语言支持
-exec_language_config() {
-    show_title
-    echo "正在配置语言支持..."
-    echo ""
-    
-    configure_language "$LOG_FILE"
-    
-    echo ""
-    echo "====================================================="
-    echo "语言支持配置完成！"
-    echo "====================================================="
-    read -p "按 Enter 键返回菜单..."
-}
+
 
 # 配置主机名
 exec_hostname_config() {
@@ -322,30 +304,27 @@ main() {
                 exec_full_init
                 ;;
             2)
-                exec_language_config
-                ;;
-            3)
                 exec_hostname_config
                 ;;
-            4)
+            3)
                 exec_network_config
                 ;;
-            5)
+            4)
                 exec_ssh_config
                 ;;
-            6)
+            5)
                 exec_security_config
                 ;;
-            7)
+            6)
                 exec_user_permissions_config
                 ;;
-            8)
+            7)
                 exec_view_log
                 ;;
-            9)
+            8)
                 exec_disable_root
                 ;;
-            10)
+            9)
                 show_title
                 echo "感谢使用 OpenCloudOS 9 服务器初始化工具！"
                 echo ""
