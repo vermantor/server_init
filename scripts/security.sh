@@ -167,7 +167,28 @@ configure_fail2ban() {
             echo "从source文件夹安装Fail2ban..."
             # 解压fail2ban压缩包
             if [ -f "$source_dir/fail2ban-master.zip" ]; then
-                unzip -q -o "$source_dir/fail2ban-master.zip" -d /tmp/
+                # 检查unzip命令是否可用
+                if command -v unzip &> /dev/null; then
+                    unzip -q -o "$source_dir/fail2ban-master.zip" -d /tmp/
+                else
+                    echo "警告: unzip命令未安装，尝试安装..."
+                    # 尝试安装unzip工具
+                    if command -v yum &> /dev/null; then
+                        # CentOS/RHEL系统
+                        sudo yum install -y unzip 2>/dev/null
+                    elif command -v apt &> /dev/null; then
+                        # Ubuntu/Debian系统
+                        sudo apt update 2>/dev/null && sudo apt install -y unzip 2>/dev/null
+                    fi
+                    # 再次检查unzip命令是否可用
+                    if command -v unzip &> /dev/null; then
+                        unzip -q -o "$source_dir/fail2ban-master.zip" -d /tmp/
+                    else
+                        echo "警告: unzip工具安装失败，跳过Fail2ban安装"
+                        echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: unzip工具安装失败" >> "$log_file"
+                        return 0
+                    fi
+                fi
                 if [ $? -eq 0 ]; then
                     echo "Fail2ban压缩包解压成功"
                     # 进入解压后的目录
