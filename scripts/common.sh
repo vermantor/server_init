@@ -95,10 +95,17 @@ show_progress() {
     local filled_length=$((percentage * bar_length / 100))
     local empty_length=$((bar_length - filled_length))
     
-    local filled=$(printf "#%.0s" $(seq 1 $filled_length))
-    local empty=$(printf "-%.0s" $(seq 1 $empty_length))
+    local filled=""
+    for ((i=0; i<filled_length; i++)); do
+        filled="${filled}#"
+    done
     
-    printf "\r%s: [%s%s] %d%%" "$title" "$filled" "$empty" "$percentage"
+    local empty=""
+    for ((i=0; i<empty_length; i++)); do
+        empty="${empty}-"
+    done
+    
+    echo -ne "\r$title: [$filled$empty] $percentage%"
     
     if [ $current -eq $total ]; then
         echo ""
