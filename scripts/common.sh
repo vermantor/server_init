@@ -2,14 +2,7 @@
 
 # 通用函数模块
 
-# 检测是否支持中文显示
-check_chinese_support() {
-    if locale -a | grep -q 'zh_CN.UTF-8' || rpm -q glibc-langpack-zh &> /dev/null; then
-        return 0  # 支持中文
-    else
-        return 1  # 不支持中文
-    fi
-}
+
 
 # 函数: 执行命令并记录日志
 exec_cmd() {
@@ -18,20 +11,18 @@ exec_cmd() {
     local log_file="$3"
     local ignore_error="$4"
     
-    echo "$desc..."
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 执行: $desc" >> "$log_file"
     
     if bash -c "$cmd"; then
-        echo "$desc 成功"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: $desc" >> "$log_file"
         return 0
     else
-        echo "$desc 失败"
+        echo "错误: $desc 失败"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: $desc" >> "$log_file"
         if [ "$ignore_error" != "true" ]; then
             return 1
         else
-            echo "忽略错误，继续执行..."
+            echo "警告: 忽略 $desc 失败，继续执行"
             echo "$(date '+%Y-%m-%d %H:%M:%S') - 警告: 忽略 $desc 失败，继续执行" >> "$log_file"
             return 0
         fi
@@ -71,7 +62,6 @@ info_msg() {
     local msg="$1"
     local log_file="$2"
     
-    echo "信息: $msg"
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 信息: $msg" >> "$log_file"
 }
 
@@ -144,7 +134,7 @@ load_config() {
     # 检查.env文件是否存在
     if [ ! -f "$config_file" ]; then
         if [ -f "$example_file" ]; then
-            echo "未找到.env文件，正在从.env.example创建..."
+            echo "错误: 未找到.env文件，正在从.env.example创建..."
             cp "$example_file" "$config_file"
             echo "请编辑.env文件设置您的配置，然后重新运行脚本"
             exit 1
@@ -155,7 +145,6 @@ load_config() {
     fi
     
     # 加载.env文件
-    echo "加载配置文件..."
     source "$config_file"
     
     # 设置默认值
@@ -176,8 +165,6 @@ load_config() {
 
 # 验证配置
 validate_config() {
-    echo "验证配置..."
-    
     # 验证SSH端口
     if ! [[ "$SSH_PORT" =~ ^[0-9]+$ ]] || [ "$SSH_PORT" -lt 1 ] || [ "$SSH_PORT" -gt 65535 ]; then
         echo "警告: SSH端口配置无效，使用默认值8888"
@@ -219,14 +206,11 @@ validate_config() {
     export PASSWORD_AUTHENTICATION
     export ENABLE_FIREWALL
     export INSTALL_FAIL2BAN
-    
-    echo "配置验证完成"
 }
 
 # 自动检测网络接口
 detect_network_interface() {
     if [ -z "$NETWORK_INTERFACE" ]; then
-        echo "正在自动检测网络接口..."
         # 参考 server_net_reset.sh 中的检测方法
         interfaces=""
         
@@ -244,7 +228,7 @@ detect_network_interface() {
         interfaces=$(echo "$interfaces" | sort -u | tr '\n' ' ')
         
         if [ -z "$interfaces" ]; then
-            echo "没有找到可用的以太网卡！"
+            echo "错误: 没有找到可用的以太网卡！"
             echo "请检查网络连接并手动在.env文件中设置NETWORK_INTERFACE"
             exit 1
         fi
@@ -265,7 +249,6 @@ detect_network_interface() {
         fi
         
         NETWORK_INTERFACE="$active_interface"
-        echo "自动检测到网络接口: $NETWORK_INTERFACE"
     fi
     
     # 导出网络接口变量，使其在调用脚本中可用

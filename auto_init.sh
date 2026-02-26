@@ -3,14 +3,13 @@
 # OpenCloudOS 9 服务器自动初始化脚本
 # 主执行脚本，整合所有模块
 
-set -e
+# 移除 set -e，因为我们已经在各个函数中处理了错误情况
 
 # 脚本目录
 SCRIPT_DIR="$(dirname "$0")/scripts"
 
 # 检查并设置脚本权限
 check_script_permissions() {
-    echo "检查脚本权限..."
     # 设置scripts目录下所有sh文件的权限
     for script in "$SCRIPT_DIR"/*.sh; do
         if [ -f "$script" ]; then
@@ -21,7 +20,6 @@ check_script_permissions() {
     if [ -f "$SCRIPT_DIR/../pull.sh" ]; then
         chmod +x "$SCRIPT_DIR/../pull.sh" 2>/dev/null || true
     fi
-    echo "脚本权限检查完成"
 }
 
 # 检查并设置脚本权限
@@ -40,14 +38,12 @@ fi
 
 
 # 加载脚本目录下的所有模块
-echo "加载配置模块..."
+# 静默加载，只在失败时显示提示
 for script in "$SCRIPT_DIR"/*.sh; do
     if [ -f "$script" ] && [ "$(basename "$script")" != "main.sh" ]; then
-        echo "加载模块: $(basename "$script")"
-        source "$script"
+        source "$script" || echo "警告: 加载模块 $(basename "$script") 失败"
     fi
 done
-echo "模块加载完成"
 
 # 检查root权限
 check_root
@@ -57,17 +53,14 @@ LOG_FILE="init.log"
 touch "$LOG_FILE"
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始执行初始化脚本" >> "$LOG_FILE"
 
-# 设置基本语言环境
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-echo "语言环境已设置为 en_US.UTF-8"
+# 移除语言环境设置，使用系统默认语言
 
 # 加载配置文件
 load_config
 
 # 调用共用的完整初始化函数
 full_init "$LOG_FILE"
-local user_success=$?
+user_success=$?
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 初始化脚本执行完成" >> "$LOG_FILE"
 echo "=== 初始化完成 ==="
@@ -78,11 +71,9 @@ if [ $user_success -eq 0 ]; then
     echo ""
     echo "重要提示:"
     echo "1. 请使用新创建的管理员账户登录服务器"
-    echo "2. 首次登录时系统会要求您修改初始密码，初始密码为 ChangeMe123!"
+    echo "2. 首次登录时系统会要求您设置密码"
     echo "3. 请设置一个强密码，包含大小写字母、数字和特殊字符"
     echo "4. 登录命令: ssh $SSH_USER@服务器IP地址 -p $SSH_PORT"
-    echo ""
-    echo "初始密码已记录在 $LOG_FILE 中，请查看并妥善保管"
 else
     echo "警告:"
     echo "1. 管理员账户创建失败或未具有sudo权限"

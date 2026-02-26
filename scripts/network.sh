@@ -24,24 +24,19 @@ cleanup_old_connections() {
     local iface=$1
     local mac=$2
     
-    echo "清理网卡 $iface 的旧连接..."
-    
     # 获取当前正在使用的连接名
     current_conn=$(nmcli -t -f NAME,DEVICE con show --active 2>/dev/null | grep ":$iface$" | cut -d: -f1)
     
     # 通过接口名查找并处理（跳过当前活跃连接）
     nmcli -t -f NAME,DEVICE con show 2>/dev/null | grep ":$iface$" | cut -d: -f1 | while read conn; do
         if [ "$conn" != "$current_conn" ]; then
-            echo "禁用旧连接(接口匹配): $conn"
             # 禁用旧连接的自动连接属性
             nmcli con mod "$conn" connection.autoconnect "no" 2>/dev/null
             # 尝试删除旧连接
-            nmcli con del "$conn" 2>/dev/null || echo "无法删除连接 $conn，已禁用自动连接"
+            nmcli con del "$conn" 2>/dev/null || true
         else
-            echo "保留当前活跃连接: $conn"
             # 禁用当前活跃连接的自动连接属性，避免重启后冲突
             nmcli con mod "$conn" connection.autoconnect "no" 2>/dev/null
-            echo "已禁用当前连接 $conn 的自动连接属性"
         fi
     done
     
@@ -49,16 +44,13 @@ cleanup_old_connections() {
     if [ ! -z "$mac" ]; then
         nmcli -t -f NAME,802-3-ethernet.mac-address con show 2>/dev/null | grep -i "$mac" | cut -d: -f1 | while read conn; do
             if [ "$conn" != "$current_conn" ]; then
-                echo "禁用旧连接(MAC匹配): $conn"
                 # 禁用旧连接的自动连接属性
                 nmcli con mod "$conn" connection.autoconnect "no" 2>/dev/null
                 # 尝试删除旧连接
-                nmcli con del "$conn" 2>/dev/null || echo "无法删除连接 $conn，已禁用自动连接"
+                nmcli con del "$conn" 2>/dev/null || true
             else
-                echo "保留当前活跃连接: $conn"
                 # 禁用当前活跃连接的自动连接属性，避免重启后冲突
                 nmcli con mod "$conn" connection.autoconnect "no" 2>/dev/null
-                echo "已禁用当前连接 $conn 的自动连接属性"
             fi
         done
     fi
@@ -71,14 +63,25 @@ create_connection() {
     local log_file=$3
     local conn_name="eth-${iface}-new"
     
-    # 检查连接名是否已存在
+    # 检查是否存在已有的连接，如果存在则重用
+    if nmcli con show "$conn_name" &>/dev/null; then
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 信息: 重用现有网络连接 $conn_name" >> "$log_file"
+        echo "$conn_name"
+        return 0
+    fi
+    
+    # 检查连接名是否已存在，如果存在则增加计数器
     local counter=1
-    while nmcli con show "$conn_name" &>/dev/null; do
-        conn_name="eth-${iface}-new-${counter}"
+    while nmcli con show "eth-${iface}-new-${counter}" &>/dev/null; do
         ((counter++))
     done
     
-    echo "创建新连接: $conn_name"
+    # 如果不存在基本连接名，则使用基本连接名
+    if [ $counter -eq 1 ]; then
+        conn_name="eth-${iface}-new"
+    else
+        conn_name="eth-${iface}-new-${counter}"
+    fi
     
     # 将子网掩码转换为CIDR前缀长度
     subnet_to_cidr() {
@@ -111,15 +114,15 @@ create_connection() {
         ipv4.addresses "$IP_ADDRESS/$CIDR" \
         ipv4.gateway "$GATEWAY" \
         ipv4.dns "$DNS_SERVERS" \
-        connection.autoconnect "yes"
+        connection.autoconnect "yes" >/dev/null 2>&1
     
     # 设置MAC地址（提高稳定性）
     if [ ! -z "$mac" ]; then
-        nmcli con mod "$conn_name" 802-3-ethernet.mac-address "$mac"
+        nmcli con mod "$conn_name" 802-3-ethernet.mac-address "$mac" >/dev/null 2>&1
     fi
     
     # 禁用IPv6（避免IPv6地址冲突）
-    nmcli con mod "$conn_name" ipv6.method disabled
+    nmcli con mod "$conn_name" ipv6.method disabled >/dev/null 2>&1
     
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 创建网络连接 $conn_name" >> "$log_file"
     echo "$conn_name"
@@ -128,7 +131,6 @@ create_connection() {
 # 测试网络连接
 test_network() {
     local log_file="$1"
-    echo "测试网络连通性..."
     
     local success=0
     local total=0
@@ -137,23 +139,19 @@ test_network() {
     for host in $test_hosts; do
         total=$((total + 1))
         if ping -c 1 -W 2 "$host" &>/dev/null; then
-            echo "可以ping通: $host"
             success=$((success + 1))
-        else
-            echo "无法ping通: $host"
         fi
     done
     
     if [ $success -eq 0 ] && [ $total -gt 0 ]; then
-        echo "所有网络测试都失败！"
+        echo "错误: 所有网络测试都失败！"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 网络测试失败" >> "$log_file"
         return 1
     elif [ $success -lt $total ]; then
-        echo "部分网络测试失败，但网络已成功配置"
+        echo "警告: 部分网络测试失败，但网络已成功配置"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 信息: 部分网络测试失败，但网络已成功配置" >> "$log_file"
         return 0
     else
-        echo "所有网络测试通过"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 网络测试通过" >> "$log_file"
         return 0
     fi
@@ -161,32 +159,36 @@ test_network() {
 
 # 显示网络状态
 show_network_status() {
+    # 网络状态信息已记录到日志文件，不再在控制台显示
+    return 0
+}
+
+# 显示网络信息（用于初始化完成后显示）
+show_final_network_info() {
     echo ""
     echo "====================================================="
-    echo "                    网络状态报告"
+    echo "                    网络配置信息"
     echo "====================================================="
     
+    echo ""
+    echo "网络接口: $NETWORK_INTERFACE"
+    echo "IP地址: $IP_ADDRESS"
+    echo "子网掩码: $NETMASK"
+    echo "网关: $GATEWAY"
+    echo "DNS服务器: $DNS_SERVERS"
+    echo "SSH端口: $SSH_PORT"
+    
+    # 显示活跃连接
     echo ""
     echo "活跃连接:"
     nmcli con show --active 2>/dev/null | tail -n +2 | while read line; do
         echo "  $line"
     done
     
+    # 显示IP地址信息
     echo ""
     echo "IP地址信息:"
     ip -4 addr show | grep -v "127.0.0.1" | grep inet | while read line; do
-        echo "  $line"
-    done
-    
-    echo ""
-    echo "路由信息:"
-    ip route show | grep default | while read line; do
-        echo "  $line"
-    done
-    
-    echo ""
-    echo "DNS配置:"
-    cat /etc/resolv.conf | grep nameserver | while read line; do
         echo "  $line"
     done
     
@@ -198,66 +200,17 @@ configure_network() {
     local log_file="$1"
     
     if [ ! -z "$NETWORK_INTERFACE" ] && [ ! -z "$IP_ADDRESS" ] && [ ! -z "$GATEWAY" ] && [ ! -z "$DNS_SERVERS" ]; then
-        echo "正在配置网络..."
-        
         # 启用网卡
         enable_interface "$NETWORK_INTERFACE"
         
         # 获取MAC地址
         MAC=$(get_mac_address "$NETWORK_INTERFACE")
-        echo "网卡 $NETWORK_INTERFACE 的MAC地址: $MAC"
         
         # 清理旧连接
         cleanup_old_connections "$NETWORK_INTERFACE" "$MAC"
         
         # 创建新连接
         CONN_NAME=$(create_connection "$NETWORK_INTERFACE" "$MAC" "$log_file")
-        
-        # 检查是否有远程SSH连接
-        local remote_connections=$(who | grep -v :0 | wc -l)
-        if [ $remote_connections -gt 0 ]; then
-            echo "检测到远程连接，跳过激活新连接以避免断开远程会话"
-            echo "新连接 $CONN_NAME 将在系统重启后自动激活"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 信息: 检测到远程连接，跳过激活新连接" >> "$log_file"
-        else
-            # 激活连接
-            echo "激活连接 $CONN_NAME..."
-            local max_attempts=3
-            local attempt=1
-            local connect_success=false
-            
-            while [ $attempt -le $max_attempts ]; do
-                if nmcli con up "$CONN_NAME" &>/dev/null; then
-                    echo "网卡 $NETWORK_INTERFACE 连接成功！"
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 激活网络连接 $CONN_NAME" >> "$log_file"
-                    connect_success=true
-                    break
-                else
-                    echo "网卡 $NETWORK_INTERFACE 连接失败 (尝试 $attempt/$max_attempts)！"
-                    echo "尝试备用连接方法..."
-                    nmcli dev connect "$NETWORK_INTERFACE" &>/dev/null
-                    
-                    if [ $? -eq 0 ]; then
-                        echo "备用方法连接成功！"
-                        echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 备用方法连接网络" >> "$log_file"
-                        connect_success=true
-                        break
-                    fi
-                fi
-                attempt=$((attempt + 1))
-                sleep 2
-            done
-            
-            if [ "$connect_success" = "false" ]; then
-                echo "所有连接方法都失败了"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 网络连接失败" >> "$log_file"
-                return 1
-            fi
-            
-            # 等待网络稳定
-            echo "等待网络稳定..."
-            sleep 3
-        fi
         
         # 显示网络状态
         show_network_status
@@ -266,17 +219,15 @@ configure_network() {
         test_network "$log_file"
         local test_result=$?
         
-        echo ""
         if [ $test_result -eq 0 ]; then
+            echo "新的网络连接: $CONN_NAME 已创建，将在系统重启后自动激活"
             echo "网络配置成功！"
-            if [ $remote_connections -gt 0 ]; then
-                echo "注意: 新网络配置将在系统重启后完全生效"
-            fi
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - 信息: 新网络连接 $CONN_NAME 将在系统重启后自动激活" >> "$log_file"
         else
-            echo "网络配置可能有问题，请手动检查"
+            echo "错误: 网络配置可能有问题，请手动检查"
         fi
     else
-        echo "网络配置参数不完整，跳过网络配置"
+        echo "错误: 网络配置参数不完整，跳过网络配置"
         return 1
     fi
 }

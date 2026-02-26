@@ -13,48 +13,29 @@ full_init() {
     show_operation_start "完整初始化" "$log_file"
     
     # 自动检测网络接口
-    current_step=$((current_step + 1))
-    show_progress "$current_step" "$total_steps" "检测网络接口"
     detect_network_interface
     
     # 配置主机名
-    current_step=$((current_step + 1))
-    show_progress "$current_step" "$total_steps" "配置主机名"
     configure_hostname "$log_file"
     
     # 配置网络
-    current_step=$((current_step + 1))
-    show_progress "$current_step" "$total_steps" "配置网络"
     configure_network "$log_file"
     
     # 配置SSH端口
-    current_step=$((current_step + 1))
-    show_progress "$current_step" "$total_steps" "配置SSH端口"
     configure_ssh_port "$log_file"
     
     # 配置安全设置[配置防火墙/配置Fail2ban]
-    current_step=$((current_step + 1))
-    show_progress "$current_step" "$total_steps" "配置防火墙"
     configure_firewall "$log_file"
-    
-    current_step=$((current_step + 1))
-    show_progress "$current_step" "$total_steps" "配置Fail2ban"
     configure_fail2ban "$log_file"
     
     # 系统安全加固
-    current_step=$((current_step + 1))
-    show_progress "$current_step" "$total_steps" "系统安全加固"
     secure_system "$log_file"
     
     # 添加管理员账户
-    current_step=$((current_step + 1))
-    show_progress "$current_step" "$total_steps" "添加管理员账户"
     create_user "$log_file"
     user_success=$?
     
     # 配置添加的管理员账户的SSH公钥
-    current_step=$((current_step + 1))
-    show_progress "$current_step" "$total_steps" "配置SSH公钥"
     configure_ssh_key "$SSH_USER" "$log_file"
     
     # 禁用root密码登录
@@ -65,6 +46,9 @@ full_init() {
     
     # 显示账户登录状态
     show_account_status
+    
+    # 显示网络信息
+    show_final_network_info
     
     show_operation_complete "完整初始化" "$log_file"
     
