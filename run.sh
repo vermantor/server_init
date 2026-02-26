@@ -5,8 +5,12 @@
 
 set -e
 
+# 项目根目录
+PROJECT_ROOT="$(pwd)"
+export PROJECT_ROOT
+
 # 脚本目录
-SCRIPT_DIR="$(dirname "$0")/scripts"
+SCRIPT_DIR="$PROJECT_ROOT/scripts"
 
 # 检查并设置脚本权限
 check_script_permissions() {

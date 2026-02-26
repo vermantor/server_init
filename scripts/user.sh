@@ -183,6 +183,16 @@ create_user() {
             if [ $? -eq 0 ]; then
                 echo "用户 $SSH_USER 创建成功"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已创建用户 $SSH_USER" >> "$log_file"
+                
+                # 设置初始密码
+                echo "ChangeMe123!" | passwd --stdin "$SSH_USER" 2>/dev/null
+                if [ $? -eq 0 ]; then
+                    echo "已设置用户 $SSH_USER 的初始密码"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已设置用户 $SSH_USER 的初始密码" >> "$log_file"
+                else
+                    echo "警告: 设置用户 $SSH_USER 的初始密码失败（权限不足），跳过"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 设置用户 $SSH_USER 的初始密码（权限不足）" >> "$log_file"
+                fi
             else
                 echo "警告: 创建用户 $SSH_USER 失败（权限不足），跳过"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 创建用户 $SSH_USER（权限不足）" >> "$log_file"
