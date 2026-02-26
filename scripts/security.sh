@@ -39,18 +39,19 @@ configure_firewall() {
         # 配置SSH端口
         echo "配置防火墙SSH端口规则..."
         
-        # 关闭默认22端口
-        firewall-cmd --permanent --remove-port=22/tcp
-        if [ $? -eq 0 ]; then
-            echo "默认端口22关闭成功"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已关闭默认端口22" >> "$log_file"
-        else
-            echo "默认端口22关闭失败"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 关闭默认端口22" >> "$log_file"
-        fi
-        
-        # 开放配置的SSH端口
-        if [ ! -z "$SSH_PORT" ]; then
+        # 检查SSH端口是否已修改
+        if [ ! -z "$SSH_PORT" ] && [ "$SSH_PORT" != "22" ]; then
+            # 关闭默认22端口
+            firewall-cmd --permanent --remove-port=22/tcp
+            if [ $? -eq 0 ]; then
+                echo "默认端口22关闭成功"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已关闭默认端口22" >> "$log_file"
+            else
+                echo "默认端口22关闭失败"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 关闭默认端口22" >> "$log_file"
+            fi
+            
+            # 开放配置的SSH端口
             firewall-cmd --permanent --add-port="$SSH_PORT"/tcp
             if [ $? -eq 0 ]; then
                 echo "SSH端口 $SSH_PORT 开放成功"
@@ -60,7 +61,8 @@ configure_firewall() {
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 开放SSH端口 $SSH_PORT" >> "$log_file"
             fi
         else
-            echo "SSH_PORT未配置，跳过端口开放"
+            echo "SSH端口未修改或未配置，保持默认端口设置"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - 提示: SSH端口未修改或未配置，保持默认端口设置" >> "$log_file"
         fi
         
         # 重新加载防火墙配置
@@ -125,110 +127,6 @@ configure_fail2ban() {
     fi
 }
 
-# 配置用户权限
-configure_user_permissions() {
-    local log_file="$1"
-    local user_created=false
-    local user_verified=false
-    
-    echo "配置用户权限..."
-    
-    # 创建新账户
-    if [ ! -z "$SSH_USER" ]; then
-        echo "创建新账户 $SSH_USER..."
-        if ! id -u "$SSH_USER" &> /dev/null; then
-            useradd -m "$SSH_USER"
-            if [ $? -eq 0 ]; then
-                echo "新账户 $SSH_USER 创建成功"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已创建新账户 $SSH_USER" >> "$log_file"
-                
-                # 设置新账户密码（临时密码，首次登录需要修改）
-                echo "$SSH_USER:ChangeMe123!" | chpasswd
-                if [ $? -eq 0 ]; then
-                    echo "新账户密码已设置（临时密码: ChangeMe123!）"
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已设置新账户密码" >> "$log_file"
-                    
-                    # 为新账户添加sudo权限
-                    echo "$SSH_USER ALL=(ALL) ALL" > "/etc/sudoers.d/$SSH_USER"
-                    if [ $? -eq 0 ]; then
-                        echo "新账户已添加到sudoers"
-                        echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已为新账户添加sudo权限" >> "$log_file"
-                        user_created=true
-                    else
-                        echo "为新账户添加sudo权限失败"
-                        echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 为新账户添加sudo权限" >> "$log_file"
-                    fi
-                else
-                    echo "设置新账户密码失败"
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 设置新账户密码" >> "$log_file"
-                fi
-            else
-                echo "创建新账户 $SSH_USER 失败"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 创建新账户 $SSH_USER" >> "$log_file"
-            fi
-        else
-            echo "账户 $SSH_USER 已存在，跳过创建"
-            user_created=true
-        fi
-    else
-        echo "SSH_USER未配置，跳过新账户创建"
-    fi
-    
-    # 验证新账户是否可用
-    if [ "$user_created" = true ]; then
-        echo "验证新账户 $SSH_USER 是否可用..."
-        # 测试用户是否可以执行基本命令
-        su - "$SSH_USER" -c "echo '测试命令'" &> /dev/null
-        if [ $? -eq 0 ]; then
-            echo "新账户 $SSH_USER 验证成功"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已验证新账户 $SSH_USER 可用" >> "$log_file"
-            user_verified=true
-        else
-            echo "新账户 $SSH_USER 验证失败"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 验证新账户 $SSH_USER 可用" >> "$log_file"
-        fi
-    fi
-    
-    echo "用户权限配置完成"
-}
 
-# 禁用root登录
-# 此函数应在初始化后单独执行
-disable_root_login() {
-    local log_file="$1"
-    
-    echo "禁用root登录权限..."
-    
-    # 锁定root账户
-    passwd -l root &> /dev/null
-    if [ $? -eq 0 ]; then
-        echo "Root账户已禁用"
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已禁用root账户" >> "$log_file"
-    else
-        echo "禁用root账户失败"
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 禁用root账户" >> "$log_file"
-        exit 1
-    fi
-    
-    # 确保SSH配置中禁用root登录
-    current_root_login=$(grep -oP '^PermitRootLogin \K\w+' /etc/ssh/sshd_config 2>/dev/null)
-    if [ "$current_root_login" != "no" ]; then
-        sed -i 's/^#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
-        sed -i 's/^PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
-        
-        # 重启SSH服务
-        systemctl restart sshd
-        if [ $? -eq 0 ]; then
-            echo "SSH服务重启成功"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已重启SSH服务" >> "$log_file"
-        else
-            echo "SSH服务重启失败"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 重启SSH服务" >> "$log_file"
-            exit 1
-        fi
-    else
-        echo "SSH配置中已禁用root登录，跳过"
-    fi
-    
-    echo "Root登录权限已禁用"
-}
+
+
