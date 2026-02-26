@@ -36,7 +36,9 @@ full_init() {
     user_success=$?
     
     # 配置添加的管理员账户的SSH公钥
-    configure_ssh_key "$SSH_USER" "$log_file"
+    # 传递项目根目录作为参数
+    local project_root="$(dirname "$0" 2>/dev/null || echo ".")"
+    configure_ssh_key "$SSH_USER" "$log_file" "$project_root"
     
     # 保持root登录可用
     # 禁用root密码登录

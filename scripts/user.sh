@@ -255,7 +255,9 @@ configure_ssh_key() {
     local user="$1"
     local log_file="$2"
     local ssh_dir="/home/$user/.ssh"
-    local pub_key_file="ssh_key.pub"
+    
+    # 使用PROJECT_ROOT环境变量构建source目录路径
+    local pub_key_file="$PROJECT_ROOT/source/ssh_key.pub"
     
     echo "配置用户 $user 的SSH公钥..."
     

@@ -91,6 +91,16 @@ configure_ssh_port() {
                 echo "警告: 重载SSH服务失败（权限不足），但不影响现有连接"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 重载SSH服务（权限不足）" >> "$log_file"
             fi
+
+            # 还需要检查是否需要修改fail2ban的配置文件
+            if [ "$INSTALL_FAIL2BAN" = "yes" ]; then
+                # 检查fail2ban配置文件中是否有需要修改的端口
+                if grep -q "^port =" /etc/fail2ban/jail.local; then
+                    # 替换为新端口
+                    sed -i "s/^port = .*/port = $SSH_PORT/" /etc/fail2ban/jail.local
+                    echo "fail2ban配置文件已更新为使用新端口 $SSH_PORT"
+                fi
+            fi
         fi
     else
         echo "警告: SSH_PORT未配置，跳过SSH端口配置"

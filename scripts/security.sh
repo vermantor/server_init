@@ -157,30 +157,101 @@ secure_system() {
 configure_fail2ban() {
     local log_file="$1"
     
+    # 获取当前工作目录
+    local current_dir="$(pwd)"
+    local source_dir="$current_dir/source"
+    
     if [ "$INSTALL_FAIL2BAN" = "yes" ]; then
-        # 检查Fail2ban是否已安装
-        if ! rpm -q fail2ban &> /dev/null; then
-            echo "配置EPEL仓库..."
-            # 安装EPEL仓库
-            dnf install -y epel-release 2>/dev/null
-            if [ $? -eq 0 ]; then
-                echo "EPEL仓库安装成功"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已安装EPEL仓库" >> "$log_file"
+        # 检查Fail2ban是否已安装（通过命令是否存在来检查）
+        if ! command -v fail2ban-server &> /dev/null; then
+            echo "从source文件夹安装Fail2ban..."
+            # 解压fail2ban压缩包
+            if [ -f "$source_dir/fail2ban-master.zip" ]; then
+                unzip -q -o "$source_dir/fail2ban-master.zip" -d /tmp/
+                if [ $? -eq 0 ]; then
+                    echo "Fail2ban压缩包解压成功"
+                    # 进入解压后的目录
+                    cd /tmp/fail2ban-master || {
+                        echo "警告: 进入fail2ban目录失败，跳过安装"
+                        echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 进入fail2ban目录"
+                        return 0
+                    }
+                    # 安装fail2ban
+                    python3 setup.py install 2>/dev/null
+                    if [ $? -eq 0 ]; then
+                        echo "Fail2ban安装成功"
+                        echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已安装Fail2ban" >> "$log_file"
+                        
+                        # 创建systemd服务单元文件
+                        echo "创建systemd服务单元文件..."
+                        cat > /etc/systemd/system/fail2ban.service << EOF
+[Unit]
+Description=Fail2Ban Service
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/bin/fail2ban-server -b
+ExecStop=/usr/local/bin/fail2ban-client stop
+ExecReload=/usr/local/bin/fail2ban-client reload
+PIDFile=/run/fail2ban/fail2ban.pid
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+                        if [ $? -eq 0 ]; then
+                            echo "systemd服务单元文件创建成功"
+                            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 创建systemd服务单元文件" >> "$log_file"
+                            
+                            # 重新加载systemd配置
+                            systemctl daemon-reload 2>/dev/null
+                            if [ $? -eq 0 ]; then
+                                echo "systemd配置重新加载成功"
+                                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 重新加载systemd配置" >> "$log_file"
+                            else
+                                echo "警告: systemd配置重新加载失败（权限不足）"
+                                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 重新加载systemd配置（权限不足）" >> "$log_file"
+                            fi
+                            
+                            # 添加fail2ban默认配置规则
+                            echo "添加fail2ban默认配置规则..."
+                            cat > /etc/fail2ban/jail.local << EOF
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1 192.168.1.0/24
+bantime = 3600
+findtime = 600
+maxretry = 3
+
+[sshd]
+enabled = true
+port = $SSH_PORT
+logpath = /var/log/secure
+EOF
+                            if [ $? -eq 0 ]; then
+                                echo "fail2ban默认配置规则添加成功"
+                                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 添加fail2ban默认配置规则" >> "$log_file"
+                            else
+                                echo "警告: fail2ban默认配置规则添加失败（权限不足）"
+                                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 添加fail2ban默认配置规则（权限不足）" >> "$log_file"
+                            fi
+                        else
+                            echo "警告: systemd服务单元文件创建失败（权限不足）"
+                            echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 创建systemd服务单元文件（权限不足）" >> "$log_file"
+                        fi
+                    else
+                        echo "警告: Fail2ban安装失败"
+                        echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 安装Fail2ban" >> "$log_file"
+                        return 0
+                    fi
+                else
+                    echo "警告: Fail2ban压缩包解压失败，跳过安装"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 解压Fail2ban压缩包" >> "$log_file"
+                    return 0
+                fi
             else
-                echo "警告: EPEL仓库安装失败，跳过Fail2ban安装"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 安装EPEL仓库" >> "$log_file"
-                return 0
-            fi
-            
-            # 安装Fail2ban
-            echo "安装Fail2ban..."
-            dnf install -y fail2ban 2>/dev/null
-            if [ $? -eq 0 ]; then
-                echo "Fail2ban安装成功"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已安装Fail2ban" >> "$log_file"
-            else
-                echo "警告: Fail2ban安装失败，跳过"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 安装Fail2ban" >> "$log_file"
+                echo "警告: Fail2ban压缩包不存在，跳过安装"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: Fail2ban压缩包不存在" >> "$log_file"
                 return 0
             fi
         else

@@ -5,8 +5,12 @@
 
 # 移除 set -e，因为我们已经在各个函数中处理了错误情况
 
+# 项目根目录
+PROJECT_ROOT="$(pwd)"
+export PROJECT_ROOT
+
 # 脚本目录
-SCRIPT_DIR="$(dirname "$0")/scripts"
+SCRIPT_DIR="$PROJECT_ROOT/scripts"
 
 # 检查并设置脚本权限
 check_script_permissions() {
@@ -47,6 +51,9 @@ done
 
 # 检查root权限
 check_root
+
+# 确保PROJECT_ROOT环境变量被传递
+export PROJECT_ROOT
 
 # 定义日志文件
 LOG_FILE="init.log"
