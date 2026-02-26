@@ -3,8 +3,10 @@
 # 完整初始化函数
 # 被 run.sh 和 auto_init.sh 共用
 
+# 返回值：0表示账户创建成功，非0表示失败
 full_init() {
     local log_file="$1"
+    local user_success=1  # 默认失败
     
     # 自动检测网络接口
     detect_network_interface
@@ -24,6 +26,7 @@ full_init() {
     
     # 添加管理员账户
     create_user "$log_file"
+    user_success=$?
     
     # 配置添加的管理员账户的SSH公钥
     configure_ssh_key "$SSH_USER" "$log_file"
@@ -36,4 +39,6 @@ full_init() {
     
     # 显示账户登录状态
     show_account_status
+    
+    return $user_success
 }

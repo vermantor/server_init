@@ -17,7 +17,7 @@ disable_account_password() {
     else
         echo "禁用账户 $account 密码登录失败"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 禁用账户 $account 密码登录" >> "$log_file"
-        exit 1
+        # 不退出，继续执行后续步骤
     fi
     
 
@@ -38,7 +38,7 @@ allow_account_password() {
     else
         echo "允许账户 $account 密码登录失败"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 允许账户 $account 密码登录" >> "$log_file"
-        exit 1
+        # 不退出，继续执行后续步骤
     fi
     
 
@@ -74,7 +74,7 @@ disable_account_ssh() {
     else
         echo "SSH服务重载失败"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 重载SSH服务" >> "$log_file"
-        exit 1
+        # 不退出，继续执行后续步骤
     fi
     
     echo "账户 $account 的SSH登录已禁用"
@@ -100,7 +100,7 @@ allow_account_ssh() {
     else
         echo "SSH服务重载失败"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 重载SSH服务" >> "$log_file"
-        exit 1
+        # 不退出，继续执行后续步骤
     fi
     
     echo "账户 $account 的SSH登录已允许"
@@ -166,8 +166,10 @@ disable_root_login() {
 }
 
 # 创建新账户
+# 返回值：0表示成功，非0表示失败
 create_user() {
     local log_file="$1"
+    local success=1  # 默认失败
     
     if [ ! -z "$SSH_USER" ]; then
         echo "创建新账户 $SSH_USER..."
@@ -182,7 +184,7 @@ create_user() {
             else
                 echo "创建用户 $SSH_USER 失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 创建用户 $SSH_USER" >> "$log_file"
-                exit 1
+                # 不退出，继续执行后续步骤
             fi
             
             # 设置用户密码（临时密码）
@@ -205,7 +207,7 @@ create_user() {
             else
                 echo "设置用户 $SSH_USER 密码失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 设置用户 $SSH_USER 密码" >> "$log_file"
-                exit 1
+                # 不退出，继续执行后续步骤
             fi
             
             # 添加到sudo组
@@ -216,7 +218,7 @@ create_user() {
             else
                 echo "将用户 $SSH_USER 添加到sudo组失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 将用户 $SSH_USER 添加到sudo组" >> "$log_file"
-                exit 1
+                # 不退出，继续执行后续步骤
             fi
 
             # 设置SSH公钥
@@ -228,16 +230,18 @@ create_user() {
         # 这一步确保账户创建成功并且具有sudo权限
         if id -u "$SSH_USER" &> /dev/null && groups "$SSH_USER" | grep -q 'sudo'; then
             echo "用户 $SSH_USER 验证成功，具有sudo权限"
+            success=0  # 成功
         else
             echo "用户 $SSH_USER 验证失败，未具有sudo权限"
             echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 用户 $SSH_USER 验证失败，未具有sudo权限" >> "$log_file"
-            exit 1
+            # 不退出，继续执行后续步骤
         fi
     else
         echo "SSH_USER未配置，跳过新账户创建"
     fi
     
     echo "用户[$SSH_USER]创建完成"
+    return $success
 }
 
 # 配置用户SSH公钥

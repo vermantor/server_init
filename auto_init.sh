@@ -67,16 +67,26 @@ load_config
 
 # 调用共用的完整初始化函数
 full_init "$LOG_FILE"
+local user_success=$?
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 初始化脚本执行完成" >> "$LOG_FILE"
 echo "=== 初始化完成 ==="
 echo "请检查 $LOG_FILE 查看详细执行日志"
-echo "root账户登录权限已禁用，请使用新创建的管理员账户进行后续操作"
-echo ""
-echo "重要提示:"
-echo "1. 请使用新创建的管理员账户登录服务器"
-echo "2. 首次登录时系统会要求您修改初始密码，初始密码为 ChangeMe123!"
-echo "3. 请设置一个强密码，包含大小写字母、数字和特殊字符"
-echo "4. 登录命令: ssh $SSH_USER@服务器IP地址 -p $SSH_PORT"
-echo ""
-echo "初始密码已记录在 $LOG_FILE 中，请查看并妥善保管"
+
+if [ $user_success -eq 0 ]; then
+    echo "root账户登录权限已禁用，请使用新创建的管理员账户进行后续操作"
+    echo ""
+    echo "重要提示:"
+    echo "1. 请使用新创建的管理员账户登录服务器"
+    echo "2. 首次登录时系统会要求您修改初始密码，初始密码为 ChangeMe123!"
+    echo "3. 请设置一个强密码，包含大小写字母、数字和特殊字符"
+    echo "4. 登录命令: ssh $SSH_USER@服务器IP地址 -p $SSH_PORT"
+    echo ""
+    echo "初始密码已记录在 $LOG_FILE 中，请查看并妥善保管"
+else
+    echo "警告:"
+    echo "1. 管理员账户创建失败或未具有sudo权限"
+    echo "2. 请检查 $LOG_FILE 查看详细错误信息"
+    echo "3. 您可能需要手动创建管理员账户并配置权限"
+    echo "4. root账户登录已被禁用，请确保您有其他登录方式"
+fi
