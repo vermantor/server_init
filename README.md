@@ -42,6 +42,7 @@ server_init/
 - 确保服务器运行 OpenCloudOS 9
 - 以 root 权限执行脚本
 - 确保服务器可以访问网络（用于安装依赖）
+- 确保git服务可用，如果不可用，就用`sudo dnf install git -y`安装
 
 ### 2. 配置步骤
 
