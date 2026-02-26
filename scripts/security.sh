@@ -119,8 +119,8 @@ secure_system() {
     
     # 配置SSH安全设置
     if [ -w "/etc/ssh/sshd_config" ]; then
-        # 禁用root登录
-        # d -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config 2>/dev/null
+        # 禁用root用户远程登录
+        sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config 2>/dev/null
         # 禁用密码认证（如果配置为no）
         if [ "$PASSWORD_AUTHENTICATION" = "no" ]; then
             sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config 2>/dev/null

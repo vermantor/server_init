@@ -41,7 +41,7 @@ full_init() {
     configure_ssh_key "$SSH_USER" "$log_file" "$project_root"
     
     # 禁用root密码登录
-    disable_account_password "root" "$log_file"
+    # disable_account_password "root" "$log_file"
     
     # 禁用root SSH登录
     disable_account_ssh "root" "$log_file"

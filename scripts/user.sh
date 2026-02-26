@@ -10,7 +10,7 @@ disable_account_password() {
     # 尝试锁定账户
     passwd -l "$account" 2>/dev/null
     if [ $? -eq 0 ]; then
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已禁用账户 $account 的密码登录" >> "$log_file"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已锁定账户 $account " >> "$log_file"
     else
         echo "警告: 禁用账户 $account 密码登录失败（权限不足），跳过"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 禁用账户 $account 密码登录（权限不足）" >> "$log_file"
@@ -40,8 +40,8 @@ allow_account_password() {
     
     # 确保SSH配置中PasswordAuthentication为yes
     if [ -w "/etc/ssh/sshd_config" ]; then
-        sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null
-        sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null
+        # sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null
+        # sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null
         
         # 重启SSH服务
         systemctl restart sshd 2>/dev/null
@@ -197,7 +197,7 @@ create_user() {
         # 检查用户是否已存在
         if ! id -u "$SSH_USER" &> /dev/null; then
             # 尝试创建用户，使用 -p '*' 不配置密码
-            useradd -p '*' "$SSH_USER" 2>/dev/null
+            useradd -m -p '*' "$SSH_USER" 2>/dev/null
             if [ $? -eq 0 ]; then
                 echo "用户 $SSH_USER 创建成功（未配置密码）"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已创建用户 $SSH_USER（未配置密码）" >> "$log_file"
@@ -208,14 +208,14 @@ create_user() {
             fi
             
             # 强制用户在首次登录时设置密码
-            passwd -e "$SSH_USER" 2>/dev/null
-            if [ $? -eq 0 ]; then
-                echo "已设置用户 $SSH_USER 首次登录时必须设置密码"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已设置用户 $SSH_USER 首次登录时必须设置密码" >> "$log_file"
-            else
-                echo "警告: 设置用户 $SSH_USER 首次登录时设置密码失败（权限不足），跳过"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 设置用户 $SSH_USER 首次登录时设置密码（权限不足）" >> "$log_file"
-            fi
+            # passwd -e "$SSH_USER" 2>/dev/null
+            # if [ $? -eq 0 ]; then
+            #     echo "已设置用户 $SSH_USER 首次登录时必须设置密码"
+            #     echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已设置用户 $SSH_USER 首次登录时必须设置密码" >> "$log_file"
+            # else
+            #     echo "警告: 设置用户 $SSH_USER 首次登录时设置密码失败（权限不足），跳过"
+            #     echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 设置用户 $SSH_USER 首次登录时设置密码（权限不足）" >> "$log_file"
+            # fi
             
             # 尝试添加到sudo组
             usermod -aG wheel "$SSH_USER" 2>/dev/null
