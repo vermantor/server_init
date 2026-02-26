@@ -49,7 +49,7 @@ configure_ssh_port() {
                 # 尝试安装semanage工具
                 if command -v yum &> /dev/null; then
                     # CentOS/RHEL系统
-                    sudo yum install -y policycoreutils-python 2>/dev/null
+                    sudo dnf install -y policycoreutils-python-utils 2>/dev/null
                 elif command -v apt &> /dev/null; then
                     # Ubuntu/Debian系统
                     sudo apt update 2>/dev/null && sudo apt install -y policycoreutils-python-utils 2>/dev/null
