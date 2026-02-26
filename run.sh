@@ -49,8 +49,14 @@ check_root
 load_config
 
 # 定义日志文件
-LOG_FILE="init.log"
+LOG_DIR="logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/init_$(date '+%Y%m%d_%H%M%S').log"
 touch "$LOG_FILE"
+# 创建符号链接指向最新的日志文件
+ln -sf "$LOG_FILE" "$LOG_DIR/latest.log"
+echo "日志文件: $LOG_FILE"
+echo "最新日志链接: $LOG_DIR/latest.log"
 
 # 清屏函数
 clear_screen() {
@@ -87,7 +93,9 @@ show_menu() {
     echo "14. 允许管理员SSH登录"
     echo "15. 禁止管理员SSH登录"
     echo "16. 查看执行日志"
-    echo "17. 退出"
+    echo "17. 备份系统配置"
+    echo "18. 恢复系统配置"
+    echo "19. 退出"
     echo ""
 }
 
@@ -220,13 +228,75 @@ exec_view_log() {
     echo "执行日志内容:"
     echo "====================================================="
     
-    if [ -f "$LOG_FILE" ]; then
+    if [ -f "$LOG_DIR/latest.log" ]; then
+        echo "查看最新日志文件: $LOG_DIR/latest.log"
+        echo ""
+        cat "$LOG_DIR/latest.log"
+    elif [ -f "$LOG_FILE" ]; then
+        echo "查看当前日志文件: $LOG_FILE"
+        echo ""
         cat "$LOG_FILE"
     else
         echo "日志文件不存在"
+        echo ""
+        echo "可用的日志文件:"
+        ls -la "$LOG_DIR"/*.log 2>/dev/null || echo "无日志文件"
     fi
     
     echo "====================================================="
+    read -p "按 Enter 键返回菜单..."
+}
+
+# 备份系统配置
+exec_backup_config() {
+    show_title
+    echo "正在备份系统配置..."
+    echo ""
+    
+    backup_config "$LOG_FILE"
+    local backup_result=$?
+    
+    echo ""
+    echo "====================================================="
+    if [ $backup_result -eq 0 ]; then
+        echo "系统配置备份成功！"
+    else
+        echo "系统配置备份失败！"
+    fi
+    echo "====================================================="
+    read -p "按 Enter 键返回菜单..."
+}
+
+# 恢复系统配置
+exec_restore_config() {
+    show_title
+    echo "恢复系统配置"
+    echo "====================================================="
+    
+    # 列出可用的备份
+    list_backups
+    echo ""
+    
+    read -p "请输入要恢复的备份文件路径: " backup_file
+    
+    if [ -f "$backup_file" ]; then
+        restore_config "$LOG_FILE" "$backup_file"
+        local restore_result=$?
+        
+        echo ""
+        echo "====================================================="
+        if [ $restore_result -eq 0 ]; then
+            echo "系统配置恢复成功！"
+            echo "注意: 部分配置可能需要重启才能生效"
+        else
+            echo "系统配置恢复失败！"
+        fi
+        echo "====================================================="
+    else
+        echo ""
+        echo "错误: 备份文件不存在"
+    fi
+    
     read -p "按 Enter 键返回菜单..."
 }
 
@@ -510,7 +580,7 @@ main() {
         # 显示菜单
         show_menu
         # 直接读取用户输入
-        read -p "请输入选项 [1-17]: " choice
+        read -p "请输入选项 [1-19]: " choice
         echo ""
         
         case $choice in
@@ -563,6 +633,12 @@ main() {
                 exec_view_log
                 ;;
             17)
+                exec_backup_config
+                ;;
+            18)
+                exec_restore_config
+                ;;
+            19)
                 show_title
                 echo "感谢使用 OpenCloudOS 9 服务器初始化工具！"
                 echo ""

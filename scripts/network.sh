@@ -7,13 +7,10 @@
 # 启用网卡
 enable_interface() {
     local iface=$1
-    local state=$(ip link show $iface | grep "state" | awk '{print $9}')
-    
-    if [ "$state" = "DOWN" ]; then
-        echo "正在启用网卡 $iface..."
-        ip link set $iface up
-        sleep 2
-    fi
+    # 直接尝试启用网卡，避免额外的状态检查
+    ip link set $iface up 2>/dev/null
+    # 短暂等待，确保网卡完全启用
+    sleep 1
 }
 
 # 获取网卡MAC地址
@@ -60,20 +57,6 @@ create_connection() {
     
     echo "创建新连接: $conn_name"
     
-    # 创建基本连接
-    nmcli con add con-name "$conn_name" ifname "$iface" type ethernet
-    
-    # 设置MAC地址（提高稳定性）
-    if [ ! -z "$mac" ]; then
-        nmcli con mod "$conn_name" 802-3-ethernet.mac-address "$mac"
-    fi
-    
-    # 设置自动连接
-    nmcli con mod "$conn_name" connection.autoconnect "yes"
-    
-    # 配置静态IP
-    echo "配置静态IP: $IP_ADDRESS"
-    
     # 将子网掩码转换为CIDR前缀长度
     subnet_to_cidr() {
         local mask=$1
@@ -99,12 +82,21 @@ create_connection() {
     # 计算CIDR前缀长度
     CIDR=$(subnet_to_cidr "$NETMASK")
     
-    # 先设置方法为manual
-    nmcli con mod "$conn_name" ipv4.method manual
-    # 然后设置地址、网关和DNS
-    nmcli con mod "$conn_name" ipv4.addresses "$IP_ADDRESS/$CIDR"
-    nmcli con mod "$conn_name" ipv4.gateway "$GATEWAY"
-    nmcli con mod "$conn_name" ipv4.dns "$DNS_SERVERS"
+    # 一次性创建连接并配置所有参数
+    nmcli con add con-name "$conn_name" ifname "$iface" type ethernet \
+        ipv4.method manual \
+        ipv4.addresses "$IP_ADDRESS/$CIDR" \
+        ipv4.gateway "$GATEWAY" \
+        ipv4.dns "$DNS_SERVERS" \
+        connection.autoconnect "yes"
+    
+    # 设置MAC地址（提高稳定性）
+    if [ ! -z "$mac" ]; then
+        nmcli con mod "$conn_name" 802-3-ethernet.mac-address "$mac"
+    fi
+    
+    # 禁用IPv6（避免IPv6地址冲突）
+    nmcli con mod "$conn_name" ipv6.method disabled
     
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 创建网络连接 $conn_name" >> "$log_file"
     echo "$conn_name"
@@ -117,11 +109,11 @@ test_network() {
     
     local success=0
     local total=0
-    local test_hosts="8.8.8.8 baidu.com"
+    local test_hosts="8.8.8.8"
     
     for host in $test_hosts; do
         total=$((total + 1))
-        if ping -c 2 -W 3 "$host" &>/dev/null; then
+        if ping -c 1 -W 2 "$host" &>/dev/null; then
             echo "可以ping通: $host"
             success=$((success + 1))
         else
@@ -200,23 +192,41 @@ configure_network() {
         
         # 激活连接
         echo "激活连接 $CONN_NAME..."
-        if nmcli con up "$CONN_NAME" &>/dev/null; then
-            echo "网卡 $NETWORK_INTERFACE 连接成功！"
-            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 激活网络连接 $CONN_NAME" >> "$log_file"
-        else
-            echo "网卡 $NETWORK_INTERFACE 连接失败！"
-            echo "尝试备用连接方法..."
-            nmcli dev connect "$NETWORK_INTERFACE" &>/dev/null
-            
-            if [ $? -eq 0 ]; then
-                echo "备用方法连接成功！"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 备用方法连接网络" >> "$log_file"
+        local max_attempts=3
+        local attempt=1
+        local connect_success=false
+        
+        while [ $attempt -le $max_attempts ]; do
+            if nmcli con up "$CONN_NAME" &>/dev/null; then
+                echo "网卡 $NETWORK_INTERFACE 连接成功！"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 激活网络连接 $CONN_NAME" >> "$log_file"
+                connect_success=true
+                break
             else
-                echo "备用方法也失败了"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 网络连接失败" >> "$log_file"
-                return 1
+                echo "网卡 $NETWORK_INTERFACE 连接失败 (尝试 $attempt/$max_attempts)！"
+                echo "尝试备用连接方法..."
+                nmcli dev connect "$NETWORK_INTERFACE" &>/dev/null
+                
+                if [ $? -eq 0 ]; then
+                    echo "备用方法连接成功！"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 备用方法连接网络" >> "$log_file"
+                    connect_success=true
+                    break
+                fi
             fi
+            attempt=$((attempt + 1))
+            sleep 2
+        done
+        
+        if [ "$connect_success" = "false" ]; then
+            echo "所有连接方法都失败了"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 网络连接失败" >> "$log_file"
+            return 1
         fi
+        
+        # 等待网络稳定
+        echo "等待网络稳定..."
+        sleep 3
         
         # 显示网络状态
         show_network_status
@@ -231,5 +241,8 @@ configure_network() {
         else
             echo "网络配置可能有问题，请手动检查"
         fi
+    else
+        echo "网络配置参数不完整，跳过网络配置"
+        return 1
     fi
 }

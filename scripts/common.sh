@@ -16,6 +16,7 @@ exec_cmd() {
     local cmd="$1"
     local desc="$2"
     local log_file="$3"
+    local ignore_error="$4"
     
     echo "$desc..."
     echo "$(date '+%Y-%m-%d %H:%M:%S') - 执行: $desc" >> "$log_file"
@@ -27,8 +28,105 @@ exec_cmd() {
     else
         echo "$desc 失败"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: $desc" >> "$log_file"
+        if [ "$ignore_error" != "true" ]; then
+            return 1
+        else
+            echo "忽略错误，继续执行..."
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - 警告: 忽略 $desc 失败，继续执行" >> "$log_file"
+            return 0
+        fi
+    fi
+}
+
+# 函数: 检查命令是否存在
+check_command() {
+    local cmd="$1"
+    if command -v "$cmd" &> /dev/null; then
+        return 0
+    else
         return 1
     fi
+}
+
+# 函数: 错误处理
+handle_error() {
+    local error_msg="$1"
+    local log_file="$2"
+    local exit_on_error="$3"
+    
+    echo "错误: $error_msg"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - 错误: $error_msg" >> "$log_file"
+    
+    if [ "$exit_on_error" = "true" ]; then
+        echo "脚本将退出..."
+        exit 1
+    else
+        echo "继续执行后续步骤..."
+        return 1
+    fi
+}
+
+# 函数: 信息提示
+info_msg() {
+    local msg="$1"
+    local log_file="$2"
+    
+    echo "信息: $msg"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - 信息: $msg" >> "$log_file"
+}
+
+# 函数: 警告提示
+warning_msg() {
+    local msg="$1"
+    local log_file="$2"
+    
+    echo "警告: $msg"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - 警告: $msg" >> "$log_file"
+}
+
+# 函数: 显示进度条
+show_progress() {
+    local current="$1"
+    local total="$2"
+    local title="$3"
+    
+    local percentage=$((current * 100 / total))
+    local bar_length=50
+    local filled_length=$((percentage * bar_length / 100))
+    local empty_length=$((bar_length - filled_length))
+    
+    local filled=$(printf "#%.0s" $(seq 1 $filled_length))
+    local empty=$(printf "-%.0s" $(seq 1 $empty_length))
+    
+    printf "\r%s: [%s%s] %d%%" "$title" "$filled" "$empty" "$percentage"
+    
+    if [ $current -eq $total ]; then
+        echo ""
+    fi
+}
+
+# 函数: 显示操作开始
+show_operation_start() {
+    local operation="$1"
+    local log_file="$2"
+    
+    echo ""
+    echo "====================================================="
+    echo "开始: $operation"
+    echo "====================================================="
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - 开始: $operation" >> "$log_file"
+}
+
+# 函数: 显示操作完成
+show_operation_complete() {
+    local operation="$1"
+    local log_file="$2"
+    
+    echo "====================================================="
+    echo "完成: $operation"
+    echo "====================================================="
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - 完成: $operation" >> "$log_file"
+    echo ""
 }
 
 # 加载配置文件
@@ -52,6 +150,70 @@ load_config() {
     # 加载.env文件
     echo "加载配置文件..."
     source "$config_file"
+    
+    # 设置默认值
+    : ${HOSTNAME:=server01}
+    : ${IP_ADDRESS:=192.168.1.100}
+    : ${NETMASK:=255.255.255.0}
+    : ${GATEWAY:=192.168.1.1}
+    : ${DNS_SERVERS:="192.168.1.1 61.139.2.69"}
+    : ${SSH_PORT:=8888}
+    : ${SSH_USER:=admin}
+    : ${PASSWORD_AUTHENTICATION:=no}
+    : ${ENABLE_FIREWALL:=yes}
+    : ${INSTALL_FAIL2BAN:=yes}
+    
+    # 验证配置
+    validate_config
+}
+
+# 验证配置
+validate_config() {
+    echo "验证配置..."
+    
+    # 验证SSH端口
+    if ! [[ "$SSH_PORT" =~ ^[0-9]+$ ]] || [ "$SSH_PORT" -lt 1 ] || [ "$SSH_PORT" -gt 65535 ]; then
+        echo "警告: SSH端口配置无效，使用默认值8888"
+        SSH_PORT=8888
+    fi
+    
+    # 验证IP地址
+    if ! [[ "$IP_ADDRESS" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "警告: IP地址配置无效，使用默认值192.168.1.100"
+        IP_ADDRESS=192.168.1.100
+    fi
+    
+    # 验证网关地址
+    if ! [[ "$GATEWAY" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo "警告: 网关地址配置无效，使用默认值192.168.1.1"
+        GATEWAY=192.168.1.1
+    fi
+    
+    # 验证主机名
+    if [ -z "$HOSTNAME" ]; then
+        echo "警告: 主机名未配置，使用默认值server01"
+        HOSTNAME=server01
+    fi
+    
+    # 验证SSH用户名
+    if [ -z "$SSH_USER" ]; then
+        echo "警告: SSH用户名未配置，使用默认值admin"
+        SSH_USER=admin
+    fi
+    
+    # 导出配置变量
+    export HOSTNAME
+    export IP_ADDRESS
+    export NETMASK
+    export GATEWAY
+    export DNS_SERVERS
+    export SSH_PORT
+    export SSH_USER
+    export PASSWORD_AUTHENTICATION
+    export ENABLE_FIREWALL
+    export INSTALL_FAIL2BAN
+    
+    echo "配置验证完成"
 }
 
 # 自动检测网络接口
