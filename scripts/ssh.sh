@@ -20,7 +20,7 @@ configure_ssh_port() {
             else
                 echo "备份SSH配置失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 备份SSH配置" >> "$log_file"
-                return 1
+                # 继续执行，不返回错误
             fi
             
             # 修改SSH端口
@@ -66,15 +66,17 @@ configure_ssh_port() {
             fi
             
             # 重载SSH服务，使配置生效但不中断现有连接
-            systemctl reload sshd
+            systemctl reload sshd 2>/dev/null
             if [ $? -eq 0 ]; then
                 echo "重载SSH服务成功，配置已生效"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 重载SSH服务" >> "$log_file"
             else
-                echo "重载SSH服务失败"
+                echo "重载SSH服务失败，但不影响现有连接"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 重载SSH服务" >> "$log_file"
             fi
         fi
+    else
+        echo "SSH_PORT未配置，跳过SSH端口配置"
     fi
 }
 
