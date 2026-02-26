@@ -38,6 +38,24 @@ allow_account_password() {
         # 不退出，继续执行后续步骤
     fi
     
+    # 确保SSH配置中PasswordAuthentication为yes
+    if [ -w "/etc/ssh/sshd_config" ]; then
+        sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null
+        sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null
+        
+        # 重启SSH服务
+        systemctl restart sshd 2>/dev/null
+        if [ $? -eq 0 ]; then
+            echo "SSH服务已重启，PasswordAuthentication设置为yes"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已设置PasswordAuthentication为yes并重启SSH服务" >> "$log_file"
+        else
+            echo "警告: SSH服务重启失败（权限不足），跳过"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 重启SSH服务（权限不足）" >> "$log_file"
+        fi
+    else
+        echo "警告: 无法修改SSH配置文件（权限不足），跳过"
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 无法修改SSH配置文件（权限不足）" >> "$log_file"
+    fi
 
 }
 
@@ -178,21 +196,11 @@ create_user() {
         
         # 检查用户是否已存在
         if ! id -u "$SSH_USER" &> /dev/null; then
-            # 尝试创建用户
-            useradd "$SSH_USER" 2>/dev/null
+            # 尝试创建用户，使用 -p '*' 不配置密码
+            useradd -p '*' "$SSH_USER" 2>/dev/null
             if [ $? -eq 0 ]; then
-                echo "用户 $SSH_USER 创建成功"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已创建用户 $SSH_USER" >> "$log_file"
-                
-                # 设置初始密码
-                echo "ChangeMe123!" | passwd --stdin "$SSH_USER" 2>/dev/null
-                if [ $? -eq 0 ]; then
-                    echo "已设置用户 $SSH_USER 的初始密码"
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已设置用户 $SSH_USER 的初始密码" >> "$log_file"
-                else
-                    echo "警告: 设置用户 $SSH_USER 的初始密码失败（权限不足），跳过"
-                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 设置用户 $SSH_USER 的初始密码（权限不足）" >> "$log_file"
-                fi
+                echo "用户 $SSH_USER 创建成功（未配置密码）"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 已创建用户 $SSH_USER（未配置密码）" >> "$log_file"
             else
                 echo "警告: 创建用户 $SSH_USER 失败（权限不足），跳过"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 创建用户 $SSH_USER（权限不足）" >> "$log_file"
@@ -256,7 +264,7 @@ create_user() {
         echo "警告: SSH_USER未配置，跳过新账户创建"
     fi
     
-    echo "用户[$SSH_USER]创建完成"
+    echo "用户[$SSH_USER]创建完成."
     return $success
 }
 

@@ -105,22 +105,22 @@ secure_system() {
     fi
     
     # 配置密码策略
-    if [ -w "/etc/login.defs" ]; then
-        # 设置密码最小长度
-        sed -i 's/^PASS_MIN_LEN.*/PASS_MIN_LEN 12/' /etc/login.defs 2>/dev/null
-        # 设置密码过期时间
-        sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS 90/' /etc/login.defs 2>/dev/null
-        # 设置密码警告时间
-        sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE 7/' /etc/login.defs 2>/dev/null
-    else
-        echo "警告: 无法修改密码策略（权限不足），跳过"
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 无法修改密码策略（权限不足）" >> "$log_file"
-    fi
+    # if [ -w "/etc/login.defs" ]; then
+    #     # 设置密码最小长度
+    #     sed -i 's/^PASS_MIN_LEN.*/PASS_MIN_LEN 12/' /etc/login.defs 2>/dev/null
+    #     # 设置密码过期时间
+    #     sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS 90/' /etc/login.defs 2>/dev/null
+    #     # 设置密码警告时间
+    #     sed -i 's/^PASS_WARN_AGE.*/PASS_WARN_AGE 7/' /etc/login.defs 2>/dev/null
+    # else
+    #     echo "警告: 无法修改密码策略（权限不足），跳过"
+    #     echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 无法修改密码策略（权限不足）" >> "$log_file"
+    # fi
     
     # 配置SSH安全设置
     if [ -w "/etc/ssh/sshd_config" ]; then
         # 禁用root登录
-        sed -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config 2>/dev/null
+        # d -i 's/^#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config 2>/dev/null
         # 禁用密码认证（如果配置为no）
         if [ "$PASSWORD_AUTHENTICATION" = "no" ]; then
             sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config 2>/dev/null

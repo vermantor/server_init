@@ -40,12 +40,11 @@ full_init() {
     local project_root="$(dirname "$0" 2>/dev/null || echo ".")"
     configure_ssh_key "$SSH_USER" "$log_file" "$project_root"
     
-    # 保持root登录可用
     # 禁用root密码登录
-    # disable_account_password "root" "$log_file"
+    disable_account_password "root" "$log_file"
     
     # 禁用root SSH登录
-    # disable_account_ssh "root" "$log_file"
+    disable_account_ssh "root" "$log_file"
     
     # 显示账户登录状态
     show_account_status
