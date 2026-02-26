@@ -47,13 +47,7 @@ configure_ssh_port() {
             else
                 echo "警告: semanage工具未安装，尝试安装..."
                 # 尝试安装semanage工具
-                if command -v yum &> /dev/null; then
-                    # CentOS/RHEL系统
-                    sudo dnf install -y policycoreutils-python-utils 2>/dev/null
-                elif command -v apt &> /dev/null; then
-                    # Ubuntu/Debian系统
-                    sudo apt update 2>/dev/null && sudo apt install -y policycoreutils-python-utils 2>/dev/null
-                fi
+                sudo dnf install -y policycoreutils-python-utils 2>/dev/null
                 # 再次检查semanage命令是否可用
                 if command -v semanage &> /dev/null; then
                     sudo semanage port -a -t ssh_port_t -p tcp $SSH_PORT 2>/dev/null || true
