@@ -45,7 +45,45 @@ configure_ssh_port() {
                 sudo semanage port -a -t ssh_port_t -p tcp $SSH_PORT 2>/dev/null || true
                 echo "SELinux已配置允许SSH使用端口 $SSH_PORT"
             else
-                echo "警告: semanage工具未安装，跳过SELinux配置"
+                echo "警告: semanage工具未安装，尝试安装..."
+                # 尝试安装semanage工具
+                if command -v yum &> /dev/null; then
+                    # CentOS/RHEL系统
+                    sudo yum install -y policycoreutils-python 2>/dev/null
+                elif command -v apt &> /dev/null; then
+                    # Ubuntu/Debian系统
+                    sudo apt update 2>/dev/null && sudo apt install -y policycoreutils-python-utils 2>/dev/null
+                fi
+                # 再次检查semanage命令是否可用
+                if command -v semanage &> /dev/null; then
+                    sudo semanage port -a -t ssh_port_t -p tcp $SSH_PORT 2>/dev/null || true
+                    echo "SELinux已配置允许SSH使用端口 $SSH_PORT"
+                else
+                    echo "警告: semanage工具安装失败，跳过SELinux配置"
+                fi
+                # 添加执行参数
+                # 配置/etc/sysconfig/sshd文件，添加OPTIONS="-D"
+                if [ -f /etc/sysconfig/sshd ]; then
+                    # 检查是否已存在OPTIONS行
+                    if grep -q "^OPTIONS=" /etc/sysconfig/sshd; then
+                        # 修改现有OPTIONS行
+                        sudo sed -i "s/^OPTIONS=.*/OPTIONS=\"-D\"/" /etc/sysconfig/sshd 2>/dev/null
+                    else
+                        # 添加OPTIONS行
+                        echo 'OPTIONS="-D"' | sudo tee -a /etc/sysconfig/sshd 2>/dev/null
+                    fi
+                else
+                    # 创建/etc/sysconfig/sshd文件并添加OPTIONS行
+                    echo 'OPTIONS="-D"' | sudo tee /etc/sysconfig/sshd 2>/dev/null
+                fi
+                if [ $? -eq 0 ]; then
+                    echo "已在/etc/sysconfig/sshd中配置OPTIONS=\"-D\""
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: 配置SSH执行参数" >> "$log_file"
+                else
+                    echo "警告: 配置/etc/sysconfig/sshd失败（权限不足），跳过"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 配置SSH执行参数（权限不足）" >> "$log_file"
+                fi
+                
             fi
             
             # 检查防火墙是否安装
