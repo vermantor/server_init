@@ -23,10 +23,11 @@ exec_cmd() {
     if bash -c "$cmd"; then
         echo "$desc 成功"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 成功: $desc" >> "$log_file"
+        return 0
     else
         echo "$desc 失败"
         echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: $desc" >> "$log_file"
-        exit 1
+        return 1
     fi
 }
 

@@ -214,7 +214,7 @@ configure_network() {
             else
                 echo "备用方法也失败了"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 网络连接失败" >> "$log_file"
-                exit 1
+                return 1
             fi
         fi
         

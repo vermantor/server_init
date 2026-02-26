@@ -16,7 +16,7 @@ configure_firewall() {
             else
                 echo "防火墙服务启用失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 启用防火墙服务" >> "$log_file"
-                exit 1
+                return 1
             fi
         else
             echo "防火墙服务已启用，跳过"
@@ -30,7 +30,7 @@ configure_firewall() {
             else
                 echo "防火墙服务启动失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 启动防火墙服务" >> "$log_file"
-                exit 1
+                return 1
             fi
         else
             echo "防火墙服务已运行，跳过"
@@ -91,7 +91,7 @@ configure_fail2ban() {
             else
                 echo "Fail2ban安装失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 安装Fail2ban" >> "$log_file"
-                exit 1
+                return 1
             fi
         else
             echo "Fail2ban已安装，跳过"
@@ -105,7 +105,7 @@ configure_fail2ban() {
             else
                 echo "Fail2ban服务启用失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 启用Fail2ban服务" >> "$log_file"
-                exit 1
+                return 1
             fi
         else
             echo "Fail2ban服务已启用，跳过"
@@ -119,7 +119,7 @@ configure_fail2ban() {
             else
                 echo "Fail2ban服务启动失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 启动Fail2ban服务" >> "$log_file"
-                exit 1
+                return 1
             fi
         else
             echo "Fail2ban服务已运行，跳过"

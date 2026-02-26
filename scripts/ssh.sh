@@ -20,7 +20,7 @@ configure_ssh_port() {
             else
                 echo "备份SSH配置失败"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 备份SSH配置" >> "$log_file"
-                exit 1
+                return 1
             fi
             
             # 修改SSH端口
