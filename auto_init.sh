@@ -67,7 +67,7 @@ echo "=== 初始化完成 ==="
 echo "请检查 $LOG_FILE 查看详细执行日志"
 
 if [ $user_success -eq 0 ]; then
-    echo "root账户登录权限已禁用，请使用新创建的管理员账户进行后续操作"
+    echo "root账户登录权限已启用，也可以使用新创建的管理员账户进行操作"
     echo ""
     echo "重要提示:"
     echo "1. 请使用新创建的管理员账户登录服务器"

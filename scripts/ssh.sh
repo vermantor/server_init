@@ -22,11 +22,30 @@ configure_ssh_port() {
             
             # 尝试修改SSH端口
             sed -i "s/^#Port 22/Port $SSH_PORT/" /etc/ssh/sshd_config 2>/dev/null
-            sed -i "s/^Port 22/Port $SSH_PORT/" /etc/ssh/sshd_config 2>/dev/null
-            if [ $? -ne 0 ]; then
+            sed -i "s/^Port [0-9]\+/Port $SSH_PORT/" /etc/ssh/sshd_config 2>/dev/null
+            
+            # 保存sed命令的退出状态
+            local sed_status=$?
+            
+            # 检查修改是否成功
+            if grep -q "^Port $SSH_PORT" /etc/ssh/sshd_config 2>/dev/null; then
+                echo "SSH端口已成功修改为 $SSH_PORT"
+            else
+                echo "警告: SSH端口修改可能未成功"
+            fi
+            
+            if [ $sed_status -ne 0 ]; then
                 echo "警告: 修改SSH端口失败（权限不足），跳过配置"
                 echo "$(date '+%Y-%m-%d %H:%M:%S') - 失败: 修改SSH端口（权限不足）" >> "$log_file"
                 return 0
+            fi
+            
+            # 配置SELinux允许SSH使用新端口
+            if command -v semanage &> /dev/null; then
+                sudo semanage port -a -t ssh_port_t -p tcp $SSH_PORT 2>/dev/null || true
+                echo "SELinux已配置允许SSH使用端口 $SSH_PORT"
+            else
+                echo "警告: semanage工具未安装，跳过SELinux配置"
             fi
             
             # 检查防火墙是否安装

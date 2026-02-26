@@ -130,7 +130,12 @@ secure_system() {
         # 禁用TCP端口转发
         sed -i 's/^#AllowTcpForwarding.*/AllowTcpForwarding no/' /etc/ssh/sshd_config 2>/dev/null
         # 设置登录超时
-        echo "LoginGraceTime 30" >> /etc/ssh/sshd_config 2>/dev/null
+        if grep -q "^LoginGraceTime" /etc/ssh/sshd_config 2>/dev/null; then
+            sed -i 's/^LoginGraceTime.*/LoginGraceTime 30/' /etc/ssh/sshd_config 2>/dev/null
+        else
+            # 在Match块之前添加LoginGraceTime指令
+            sed -i '/^Match/i\LoginGraceTime 30' /etc/ssh/sshd_config 2>/dev/null
+        fi
         
         # 重启SSH服务
         systemctl restart sshd 2>/dev/null
