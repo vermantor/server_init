@@ -56,7 +56,7 @@ server_init/
    - 复制环境变量示例文件并编辑
    ```bash
    cp .env.example .env
-   vim .env
+   vi .env
    ```
 
    - 编辑 .env 文件，根据实际情况修改以下配置：
